@@ -85,7 +85,15 @@ export function initMessaging(): void {
             sendResponse({ ok: true });
             return;
           case 'getMruPreview': {
-            const ids = await getMruForWindow(msg.windowId);
+            const win =
+              msg.windowId ??
+              sender.tab?.windowId ??
+              (await chrome.windows.getCurrent().catch(() => null))?.id;
+            if (typeof win !== 'number') {
+              sendResponse({ ok: false, error: 'no window' });
+              return;
+            }
+            const ids = await getMruForWindow(win);
             const map = await getTabMeta();
             const items = ids.map((id) => map[id]).filter((v): v is NonNullable<typeof v> => !!v);
             sendResponse({ ok: true, data: items });

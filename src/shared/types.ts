@@ -24,7 +24,7 @@ export type RuntimeRequest =
   | { kind: 'listHistory' }
   | { kind: 'restoreAt'; index: number }
   | { kind: 'clearHistory' }
-  | { kind: 'getMruPreview'; windowId: number }
+  | { kind: 'getMruPreview'; windowId?: number }
   | { kind: 'switchToTab'; tabId: number }
   | { kind: 'reportFormDirty'; dirty: boolean };
 
