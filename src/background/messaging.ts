@@ -1,0 +1,124 @@
+import type { RuntimeRequest, Stats } from '@/shared/types';
+import { getSettings, setSettings } from '@/shared/storage/settings';
+import { getTabMeta, setTabMeta } from '@/shared/storage/local-state';
+import {
+  closeAllInWindow,
+  closeInactiveNow,
+  exclusionReason,
+  getActiveTabIds,
+  suspendAll,
+} from './auto-cleaner';
+import { closeDuplicates, findDuplicates } from './duplicate-finder';
+import { clearHistory, listHistory, restoreAt } from './restore-history';
+import { getMruForWindow } from './mru-stack';
+
+async function computeStats(): Promise<Stats> {
+  const map = await getTabMeta();
+  const settings = await getSettings();
+  const activeIds = await getActiveTabIds();
+  const list = Object.values(map);
+  const inactiveCandidates = list.filter(
+    (m) => exclusionReason(m, settings, activeIds) === 'none',
+  ).length;
+  const suspendedCount = list.filter((m) => m.suspended).length;
+  return {
+    totalTabs: list.length,
+    inactiveCandidates,
+    suspendedCount,
+  };
+}
+
+export function initMessaging(): void {
+  chrome.runtime.onMessage.addListener((raw, sender, sendResponse) => {
+    const msg = raw as RuntimeRequest;
+    (async () => {
+      try {
+        switch (msg.kind) {
+          case 'getSettings':
+            sendResponse({ ok: true, data: await getSettings() });
+            return;
+          case 'setSettings':
+            await setSettings(msg.settings);
+            sendResponse({ ok: true });
+            return;
+          case 'getStats':
+            sendResponse({ ok: true, data: await computeStats() });
+            return;
+          case 'closeInactiveNow': {
+            const closed = await closeInactiveNow(await getSettings());
+            sendResponse({ ok: true, data: { closed } });
+            return;
+          }
+          case 'closeDuplicates': {
+            const closed = await closeDuplicates(await getSettings());
+            sendResponse({ ok: true, data: { closed } });
+            return;
+          }
+          case 'suspendAll': {
+            const suspended = await suspendAll(await getSettings());
+            sendResponse({ ok: true, data: { suspended } });
+            return;
+          }
+          case 'closeAllInWindow': {
+            const win =
+              sender.tab?.windowId ?? (await chrome.windows.getCurrent().catch(() => null))?.id;
+            if (typeof win !== 'number') {
+              sendResponse({ ok: false, error: 'no current window' });
+              return;
+            }
+            const closed = await closeAllInWindow(win, await getSettings());
+            sendResponse({ ok: true, data: { closed } });
+            return;
+          }
+          case 'findDuplicates':
+            sendResponse({ ok: true, data: await findDuplicates(await getSettings()) });
+            return;
+          case 'listHistory':
+            sendResponse({ ok: true, data: await listHistory() });
+            return;
+          case 'restoreAt':
+            await restoreAt(msg.index);
+            sendResponse({ ok: true });
+            return;
+          case 'clearHistory':
+            await clearHistory();
+            sendResponse({ ok: true });
+            return;
+          case 'getMruPreview': {
+            const ids = await getMruForWindow(msg.windowId);
+            const map = await getTabMeta();
+            const items = ids.map((id) => map[id]).filter((v): v is NonNullable<typeof v> => !!v);
+            sendResponse({ ok: true, data: items });
+            return;
+          }
+          case 'switchToTab':
+            await chrome.tabs.update(msg.tabId, { active: true });
+            sendResponse({ ok: true });
+            return;
+          case 'reportFormDirty': {
+            const tid = sender.tab?.id;
+            if (typeof tid === 'number') {
+              const map = await getTabMeta();
+              if (map[tid]) {
+                map[tid].formDirty = msg.dirty;
+                await setTabMeta(map);
+              }
+            }
+            sendResponse({ ok: true });
+            return;
+          }
+          default: {
+            const _exhaustive: never = msg;
+            sendResponse({ ok: false, error: `unknown kind: ${JSON.stringify(_exhaustive)}` });
+          }
+        }
+      } catch (err) {
+        sendResponse({
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    })();
+    return true; // async sendResponse
+  });
+}
