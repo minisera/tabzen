@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { sendMessage } from '@/shared/lib/runtime-client';
+import { sendMessageVoid } from '@/shared/lib/runtime-client';
 import type { TabSwitchItem } from '@/shared/types';
 import { relativeFromNow } from '@/shared/utils/time';
 import { cn } from '@/shared/lib/utils';
@@ -53,7 +53,7 @@ export function TabSwitcherOverlay() {
       const cur = stateRef.current;
       if (!cur.open) return;
       const target = cur.items[cur.selected];
-      if (target) void sendMessage({ kind: 'switchToTab', tabId: target.tabId });
+      if (target) sendMessageVoid({ kind: 'switchToTab', tabId: target.tabId });
       updateState(() => INITIAL);
     }, FALLBACK_COMMIT_MS);
   }, [clearTimer, updateState]);
@@ -67,7 +67,7 @@ export function TabSwitcherOverlay() {
     (tabId: number) => {
       clearTimer();
       updateState(() => INITIAL);
-      void sendMessage({ kind: 'switchToTab', tabId });
+      sendMessageVoid({ kind: 'switchToTab', tabId });
     },
     [clearTimer, updateState],
   );
@@ -77,7 +77,7 @@ export function TabSwitcherOverlay() {
     const cur = stateRef.current;
     if (!cur.open) return;
     const target = cur.items[cur.selected];
-    if (target) void sendMessage({ kind: 'switchToTab', tabId: target.tabId });
+    if (target) sendMessageVoid({ kind: 'switchToTab', tabId: target.tabId });
     updateState(() => INITIAL);
   }, [clearTimer, updateState]);
 
