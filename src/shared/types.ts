@@ -30,6 +30,13 @@ export type RuntimeRequest =
 
 export type RuntimeResponse<T = unknown> = { ok: true; data?: T } | { ok: false; error: string };
 
+/** Service Worker → Content Script へのメッセージ */
+export type ContentRequest = { kind: 'confirm'; message: string };
+
+export interface ContentConfirmResponse {
+  ok: boolean;
+}
+
 export type RuntimeResponseMap = {
   getSettings: Settings;
   setSettings: void;

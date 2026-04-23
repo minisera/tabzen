@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { TabSwitcherOverlay } from './tab-switcher/TabSwitcherOverlay';
 import { initFormDetector } from './form-detector';
 import cssText from '@/shared/styles/globals.css?inline';
+import type { ContentRequest } from '@/shared/types';
 
 const HOST_ID = 'tab-tidy-root';
 
@@ -11,7 +12,6 @@ function mount() {
 
   const host = document.createElement('div');
   host.id = HOST_ID;
-  // ページ側の CSS からの影響を最小化するためにスタイルリセット
   host.style.cssText =
     'all: initial; position: fixed; inset: 0; z-index: 2147483647; pointer-events: none;';
   document.documentElement.appendChild(host);
@@ -34,6 +34,17 @@ function mount() {
     </StrictMode>,
   );
 }
+
+function isContentRequest(v: unknown): v is ContentRequest {
+  return typeof v === 'object' && v !== null && (v as { kind?: unknown }).kind === 'confirm';
+}
+
+chrome.runtime.onMessage.addListener((raw, _sender, sendResponse) => {
+  if (!isContentRequest(raw)) return false;
+  const ok = window.confirm(raw.message);
+  sendResponse({ ok });
+  return false;
+});
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', mount, { once: true });

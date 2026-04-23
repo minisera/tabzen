@@ -90,6 +90,15 @@ export default function App() {
                   disabled={pending !== null}
                   onClick={() =>
                     void runAction('closeInactive', async () => {
+                      const candidates = stats?.inactiveCandidates ?? 0;
+                      if (candidates === 0) return '非アクティブタブはありません';
+                      if (
+                        !window.confirm(
+                          `${candidates} 個の非アクティブタブを閉じます。よろしいですか？`,
+                        )
+                      ) {
+                        return 'キャンセルしました';
+                      }
                       const r = await sendMessage({ kind: 'closeInactiveNow' });
                       return `${r.closed} 個の非アクティブタブを閉じました`;
                     })
@@ -103,6 +112,12 @@ export default function App() {
                   disabled={pending !== null}
                   onClick={() =>
                     void runAction('closeDuplicates', async () => {
+                      const groups = await sendMessage({ kind: 'findDuplicates' });
+                      const total = groups.reduce((acc, g) => acc + g.tabs.length - 1, 0);
+                      if (total === 0) return '重複タブは見つかりませんでした';
+                      if (!window.confirm(`${total} 個の重複タブを閉じます。よろしいですか？`)) {
+                        return 'キャンセルしました';
+                      }
                       const r = await sendMessage({ kind: 'closeDuplicates' });
                       return `${r.closed} 個の重複タブを閉じました`;
                     })
@@ -117,7 +132,9 @@ export default function App() {
                   onClick={() =>
                     void runAction('suspendAll', async () => {
                       const r = await sendMessage({ kind: 'suspendAll' });
-                      return `${r.suspended} 個のタブをサスペンドしました`;
+                      return r.suspended === 0
+                        ? 'サスペンド対象のタブがありません'
+                        : `${r.suspended} 個のタブをサスペンドしました`;
                     })
                   }
                 >
