@@ -131,13 +131,13 @@ export function TabSwitcherOverlay() {
       }
     };
 
-    // Alt (macOS の Option も key === 'Alt') をリリースしたタイミングで確定。
-    // タイミングによっては先に SW のメッセージが届く前に Alt リリースが走る
-    // こともあるため、state.open が true のときだけ反応する。
+    // 修飾キー (Alt / Control / Meta) のいずれかをリリースしたら確定。
+    // Mac の Chrome では chrome.commands に Alt+Q を登録しても実際は
+    // Ctrl+Q として処理されることがあるため、いずれの修飾キーにも対応する。
     const onKeyUp = (e: KeyboardEvent) => {
       if (!stateRef.current.open) return;
       console.log('[Tab Tidy][Overlay] keyup while open:', e.key);
-      if (e.key === 'Alt') {
+      if (e.key === 'Alt' || e.key === 'Control' || e.key === 'Meta') {
         e.preventDefault();
         e.stopPropagation();
         commitCurrent();
@@ -184,7 +184,7 @@ export function TabSwitcherOverlay() {
             <span>次</span>
             <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Alt+Shift+Q</kbd>
             <span>前</span>
-            <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Alt↑</kbd>
+            <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">修飾キー↑</kbd>
             <span>確定</span>
             <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Esc</kbd>
           </span>
