@@ -12,6 +12,8 @@ interface State {
 
 const INITIAL: State = { open: false, items: [], selected: 0 };
 const EVENT_TAB_SWITCH = 'tab-tidy:tab-switch';
+/** Alt リリースを取り逃した場合の保険タイムアウト (5 秒) */
+const FALLBACK_COMMIT_MS = 5000;
 
 function safeHost(url: string): string {
   try {
@@ -23,30 +25,61 @@ function safeHost(url: string): string {
 
 export function TabSwitcherOverlay() {
   const [state, setState] = useState<State>(INITIAL);
+  // state を setState 実行時に同期的に反映する ref。
+  // keyup / CustomEvent ハンドラから最新値を参照するのに使う
+  // (useEffect 経由だと1レンダー遅れて race condition が起きる)。
   const stateRef = useRef<State>(INITIAL);
+  const timerRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
+  const updateState = useCallback((updater: (prev: State) => State) => {
+    setState((prev) => {
+      const next = updater(prev);
+      stateRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const scheduleFallbackCommit = useCallback(() => {
+    clearTimer();
+    timerRef.current = window.setTimeout(() => {
+      timerRef.current = null;
+      const cur = stateRef.current;
+      if (!cur.open) return;
+      const target = cur.items[cur.selected];
+      if (target) void sendMessage({ kind: 'switchToTab', tabId: target.tabId });
+      updateState(() => INITIAL);
+    }, FALLBACK_COMMIT_MS);
+  }, [clearTimer, updateState]);
 
   const close = useCallback(() => {
-    setState(INITIAL);
-  }, []);
+    clearTimer();
+    updateState(() => INITIAL);
+  }, [clearTimer, updateState]);
 
-  const commitTabId = useCallback((tabId: number) => {
-    setState(INITIAL);
-    void sendMessage({ kind: 'switchToTab', tabId });
-  }, []);
+  const commitTabId = useCallback(
+    (tabId: number) => {
+      clearTimer();
+      updateState(() => INITIAL);
+      void sendMessage({ kind: 'switchToTab', tabId });
+    },
+    [clearTimer, updateState],
+  );
 
   const commitCurrent = useCallback(() => {
+    clearTimer();
     const cur = stateRef.current;
     if (!cur.open) return;
     const target = cur.items[cur.selected];
-    if (target) {
-      void sendMessage({ kind: 'switchToTab', tabId: target.tabId });
-    }
-    setState(INITIAL);
-  }, []);
+    if (target) void sendMessage({ kind: 'switchToTab', tabId: target.tabId });
+    updateState(() => INITIAL);
+  }, [clearTimer, updateState]);
 
   useEffect(() => {
     const onTick = (ev: Event) => {
@@ -54,21 +87,22 @@ export function TabSwitcherOverlay() {
         .detail;
       const incoming = detail?.items ?? [];
       const direction = detail?.direction ?? 'next';
-      const cur = stateRef.current;
 
-      if (!cur.open) {
-        if (incoming.length < 2) return;
-        // 初回: 2番目 (next) または 末尾 (prev) を選択
-        const selected = direction === 'next' ? 1 : incoming.length - 1;
-        setState({ open: true, items: incoming, selected });
-        return;
-      }
-
-      const total = cur.items.length;
-      if (total === 0) return;
-      const delta = direction === 'next' ? 1 : -1;
-      const next = (cur.selected + delta + total) % total;
-      setState({ ...cur, selected: next });
+      updateState((prev) => {
+        if (!prev.open) {
+          if (incoming.length < 2) return prev;
+          const selected = direction === 'next' ? 1 : incoming.length - 1;
+          console.debug('[Tab Tidy] overlay open', { direction, selected });
+          return { open: true, items: incoming, selected };
+        }
+        const total = prev.items.length;
+        if (total === 0) return prev;
+        const delta = direction === 'next' ? 1 : -1;
+        const next = (prev.selected + delta + total) % total;
+        console.debug('[Tab Tidy] overlay move', prev.selected, '→', next);
+        return { ...prev, selected: next };
+      });
+      scheduleFallbackCommit();
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -84,8 +118,9 @@ export function TabSwitcherOverlay() {
       }
     };
 
-    // Alt (macOS でも Option = Alt) リリースで確定。ユーザーが Alt+Q を
-    // 押して Alt を離すまで巡回する Cmd+Tab ライクな UX。
+    // Alt (macOS の Option も key === 'Alt') をリリースしたタイミングで確定。
+    // タイミングによっては先に SW のメッセージが届く前に Alt リリースが走る
+    // こともあるため、state.open が true のときだけ反応する。
     const onKeyUp = (e: KeyboardEvent) => {
       if (!stateRef.current.open) return;
       if (e.key === 'Alt') {
@@ -96,7 +131,7 @@ export function TabSwitcherOverlay() {
     };
 
     const onBlur = () => {
-      if (stateRef.current.open) setState(INITIAL);
+      if (stateRef.current.open) close();
     };
 
     window.addEventListener(EVENT_TAB_SWITCH, onTick);
@@ -108,8 +143,9 @@ export function TabSwitcherOverlay() {
       document.removeEventListener('keydown', onKeyDown, true);
       document.removeEventListener('keyup', onKeyUp, true);
       window.removeEventListener('blur', onBlur);
+      clearTimer();
     };
-  }, [close, commitCurrent]);
+  }, [close, clearTimer, commitCurrent, scheduleFallbackCommit, updateState]);
 
   if (!state.open) return null;
 
@@ -145,7 +181,7 @@ export function TabSwitcherOverlay() {
                   idx === state.selected ? 'bg-accent' : 'hover:bg-accent/50',
                 )}
                 onClick={() => commitTabId(item.tabId)}
-                onMouseEnter={() => setState((s) => (s.open ? { ...s, selected: idx } : s))}
+                onMouseEnter={() => updateState((s) => (s.open ? { ...s, selected: idx } : s))}
               >
                 {item.thumbnail ? (
                   <div className="relative w-[96px] h-[60px] rounded-sm bg-muted shrink-0 overflow-hidden border border-border">
