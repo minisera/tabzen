@@ -11,6 +11,8 @@ interface State {
 }
 
 const INITIAL: State = { open: false, items: [], selected: 0 };
+const EVENT_TAB_SWITCH_NEXT = 'tab-tidy:tab-switch-next';
+const AUTO_COMMIT_MS = 1500;
 
 function safeHost(url: string): string {
   try {
@@ -23,89 +25,89 @@ function safeHost(url: string): string {
 export function TabSwitcherOverlay() {
   const [state, setState] = useState<State>(INITIAL);
   const stateRef = useRef<State>(INITIAL);
-  const cycleRef = useRef(false);
+  const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
 
-  const close = useCallback(() => {
-    setState(INITIAL);
-    cycleRef.current = false;
+  const clearTimer = useCallback(() => {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
   }, []);
 
-  const commit = useCallback((tabId: number) => {
+  const close = useCallback(() => {
+    clearTimer();
     setState(INITIAL);
-    cycleRef.current = false;
-    void sendMessage({ kind: 'switchToTab', tabId });
-  }, []);
+  }, [clearTimer]);
+
+  const commitTabId = useCallback(
+    (tabId: number) => {
+      clearTimer();
+      setState(INITIAL);
+      void sendMessage({ kind: 'switchToTab', tabId });
+    },
+    [clearTimer],
+  );
+
+  const commitCurrent = useCallback(() => {
+    const cur = stateRef.current;
+    if (!cur.open) return;
+    const target = cur.items[cur.selected];
+    if (target) {
+      void sendMessage({ kind: 'switchToTab', tabId: target.tabId });
+    }
+    clearTimer();
+    setState(INITIAL);
+  }, [clearTimer]);
+
+  const scheduleAutoCommit = useCallback(() => {
+    clearTimer();
+    timerRef.current = window.setTimeout(() => {
+      timerRef.current = null;
+      commitCurrent();
+    }, AUTO_COMMIT_MS);
+  }, [clearTimer, commitCurrent]);
 
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === 'Tab') {
-        e.preventDefault();
-        e.stopPropagation();
-        const cur = stateRef.current;
-        if (!cur.open) {
-          cycleRef.current = true;
-          sendMessage({ kind: 'getMruPreview' })
-            .then((items) => {
-              if (!cycleRef.current) return;
-              if (items.length === 0) {
-                cycleRef.current = false;
-                return;
-              }
-              setState({ open: true, items, selected: Math.min(1, items.length - 1) });
-            })
-            .catch((err: unknown) => {
-              cycleRef.current = false;
-              console.error('[Tab Tidy] failed to load MRU', err);
-            });
-        } else {
-          const delta = e.shiftKey ? -1 : 1;
-          const total = cur.items.length;
-          if (total > 0) {
-            const next = (cur.selected + delta + total) % total;
-            setState({ ...cur, selected: next });
-          }
-        }
-        return;
+    const onNext = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ items?: TabMeta[] }>).detail;
+      const incoming = detail?.items ?? [];
+      const cur = stateRef.current;
+      if (!cur.open) {
+        if (incoming.length < 2) return;
+        setState({ open: true, items: incoming, selected: 1 });
+      } else {
+        const total = cur.items.length;
+        if (total === 0) return;
+        const next = (cur.selected + 1) % total;
+        setState({ ...cur, selected: next });
       }
+      scheduleAutoCommit();
+    };
 
-      if (e.key === 'Escape' && stateRef.current.open) {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!stateRef.current.open) return;
+      if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
         close();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        commitCurrent();
       }
     };
 
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (!cycleRef.current) return;
-      if (e.key !== 'Control') return;
-      cycleRef.current = false;
-      const cur = stateRef.current;
-      if (!cur.open) return;
-      const target = cur.items[cur.selected];
-      if (target) {
-        void sendMessage({ kind: 'switchToTab', tabId: target.tabId });
-      }
-      setState(INITIAL);
-    };
-
-    const onBlur = () => {
-      cycleRef.current = false;
-      if (stateRef.current.open) setState(INITIAL);
-    };
-
+    window.addEventListener(EVENT_TAB_SWITCH_NEXT, onNext);
     document.addEventListener('keydown', onKeyDown, true);
-    document.addEventListener('keyup', onKeyUp, true);
-    window.addEventListener('blur', onBlur);
     return () => {
+      window.removeEventListener(EVENT_TAB_SWITCH_NEXT, onNext);
       document.removeEventListener('keydown', onKeyDown, true);
-      document.removeEventListener('keyup', onKeyUp, true);
-      window.removeEventListener('blur', onBlur);
     };
-  }, [close]);
+  }, [close, commitCurrent, scheduleAutoCommit]);
 
   if (!state.open) return null;
 
@@ -121,8 +123,11 @@ export function TabSwitcherOverlay() {
       >
         <div className="px-4 py-2 border-b border-border flex items-center justify-between text-xs text-muted-foreground shrink-0">
           <span>最近のタブ</span>
-          <span>
-            <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Ctrl+Tab</kbd>{' '}
+          <span className="flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Alt+Q</kbd>
+            <span>次</span>
+            <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Enter</kbd>
+            <span>確定</span>
             <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Esc</kbd>
           </span>
         </div>
@@ -135,7 +140,7 @@ export function TabSwitcherOverlay() {
                   'w-full px-4 py-2 flex items-center gap-3 text-left transition-colors',
                   idx === state.selected ? 'bg-accent' : 'hover:bg-accent/50',
                 )}
-                onClick={() => commit(item.tabId)}
+                onClick={() => commitTabId(item.tabId)}
                 onMouseEnter={() => setState((s) => (s.open ? { ...s, selected: idx } : s))}
               >
                 {item.favIconUrl ? (

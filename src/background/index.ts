@@ -4,6 +4,7 @@ import { initMessaging } from './messaging';
 import { closeAllInWindow, closeInactiveNow, runAutoClean } from './auto-cleaner';
 import { closeDuplicates, findDuplicates } from './duplicate-finder';
 import { getMruForWindow } from './mru-stack';
+import { getTabMeta } from '@/shared/storage/local-state';
 import type { ContentConfirmResponse, ContentRequest } from '@/shared/types';
 
 const ALARM_SCAN = 'tab-tidy-scan';
@@ -34,6 +35,77 @@ async function confirmInActiveTab(windowId: number, message: string): Promise<bo
     // Content Script が注入されないページ (chrome://, Web Store 等)
     return false;
   }
+}
+
+const CYCLE_MAX = 5;
+const CYCLE_TIMEOUT_MS = 1500;
+let directCycle: {
+  windowId: number;
+  snapshot: number[];
+  cursor: number;
+  lastTick: number;
+} | null = null;
+
+function snapshotEquals(a: number[], b: number[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+async function tickDirectCycle(windowId: number, snapshot: number[]): Promise<void> {
+  if (snapshot.length < 2) return;
+  const now = Date.now();
+  const continuing =
+    directCycle !== null &&
+    directCycle.windowId === windowId &&
+    now - directCycle.lastTick < CYCLE_TIMEOUT_MS &&
+    snapshotEquals(directCycle.snapshot, snapshot);
+
+  if (continuing && directCycle) {
+    directCycle.cursor = (directCycle.cursor + 1) % directCycle.snapshot.length;
+    directCycle.lastTick = now;
+  } else {
+    directCycle = {
+      windowId,
+      snapshot,
+      cursor: Math.min(1, snapshot.length - 1),
+      lastTick: now,
+    };
+  }
+  const target = directCycle.snapshot[directCycle.cursor];
+  if (typeof target === 'number') {
+    try {
+      await chrome.tabs.update(target, { active: true });
+    } catch {
+      directCycle = null;
+    }
+  }
+}
+
+async function handleTabSwitchFallback(tab: chrome.tabs.Tab | undefined): Promise<void> {
+  const win = await resolveWindowId(tab);
+  if (typeof win !== 'number') return;
+  const ids = (await getMruForWindow(win)).slice(0, CYCLE_MAX);
+  if (ids.length < 2) return;
+
+  const map = await getTabMeta();
+  const items = ids.map((id) => map[id]).filter((v): v is NonNullable<typeof v> => !!v);
+
+  const [active] = await chrome.tabs.query({ active: true, windowId: win });
+  if (typeof active?.id === 'number') {
+    try {
+      await chrome.tabs.sendMessage(active.id, {
+        kind: 'tabSwitchNext',
+        items,
+      } satisfies ContentRequest);
+      return;
+    } catch {
+      // Content Script が動かないページ → 直接切替にフォールバック
+    }
+  }
+  await tickDirectCycle(win, ids);
 }
 
 chrome.runtime.onInstalled.addListener(async (details) => {
@@ -98,20 +170,7 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
       return;
     }
     case 'switch-tab-fallback': {
-      // chrome:// などで Content Script オーバーレイが使えないページのフォールバック。
-      // MRU の 2 番目のタブに直接切り替える。
-      const win = await resolveWindowId(tab);
-      if (typeof win === 'number') {
-        const ids = await getMruForWindow(win);
-        const nextId = ids[1];
-        if (typeof nextId === 'number') {
-          try {
-            await chrome.tabs.update(nextId, { active: true });
-          } catch {
-            // ignore
-          }
-        }
-      }
+      await handleTabSwitchFallback(tab);
       return;
     }
     default:

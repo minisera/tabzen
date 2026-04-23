@@ -31,7 +31,9 @@ export type RuntimeRequest =
 export type RuntimeResponse<T = unknown> = { ok: true; data?: T } | { ok: false; error: string };
 
 /** Service Worker → Content Script へのメッセージ */
-export type ContentRequest = { kind: 'confirm'; message: string };
+export type ContentRequest =
+  | { kind: 'confirm'; message: string }
+  | { kind: 'tabSwitchNext'; items: import('./schema/tab-meta').TabMeta[] };
 
 export interface ContentConfirmResponse {
   ok: boolean;

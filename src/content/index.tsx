@@ -6,6 +6,7 @@ import cssText from '@/shared/styles/globals.css?inline';
 import type { ContentRequest } from '@/shared/types';
 
 const HOST_ID = 'tab-tidy-root';
+const EVENT_TAB_SWITCH_NEXT = 'tab-tidy:tab-switch-next';
 
 function mount() {
   if (document.getElementById(HOST_ID)) return;
@@ -36,13 +37,23 @@ function mount() {
 }
 
 function isContentRequest(v: unknown): v is ContentRequest {
-  return typeof v === 'object' && v !== null && (v as { kind?: unknown }).kind === 'confirm';
+  if (typeof v !== 'object' || v === null) return false;
+  const kind = (v as { kind?: unknown }).kind;
+  return kind === 'confirm' || kind === 'tabSwitchNext';
 }
 
 chrome.runtime.onMessage.addListener((raw, _sender, sendResponse) => {
   if (!isContentRequest(raw)) return false;
-  const ok = window.confirm(raw.message);
-  sendResponse({ ok });
+  if (raw.kind === 'confirm') {
+    const ok = window.confirm(raw.message);
+    sendResponse({ ok });
+    return false;
+  }
+  if (raw.kind === 'tabSwitchNext') {
+    window.dispatchEvent(new CustomEvent(EVENT_TAB_SWITCH_NEXT, { detail: { items: raw.items } }));
+    sendResponse({ ok: true });
+    return false;
+  }
   return false;
 });
 
