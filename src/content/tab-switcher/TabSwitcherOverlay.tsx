@@ -12,8 +12,8 @@ interface State {
 
 const INITIAL: State = { open: false, items: [], selected: 0 };
 const EVENT_TAB_SWITCH = 'tab-tidy:tab-switch';
-/** Alt リリースを取り逃した場合の保険タイムアウト (5 秒) */
-const FALLBACK_COMMIT_MS = 5000;
+/** 修飾キーリリースを取り逃した場合の保険タイムアウト */
+const FALLBACK_COMMIT_MS = 1000;
 
 function safeHost(url: string): string {
   try {
@@ -144,10 +144,13 @@ export function TabSwitcherOverlay() {
       }
     };
 
+    // ウィンドウから blur したら現在選択中のタブを確定する。
+    // chrome.commands の Ctrl+Q (Mac) などはキーリリース時に keyup が
+    // 届く前に blur が発火するケースがあるため、close ではなく commit。
     const onBlur = () => {
       if (stateRef.current.open) {
-        console.log('[Tab Tidy][Overlay] blur while open — closing');
-        close();
+        console.log('[Tab Tidy][Overlay] blur while open — committing current');
+        commitCurrent();
       }
     };
 
