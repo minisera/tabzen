@@ -44,8 +44,8 @@ export default defineManifest({
       description: '重複タブをクローズ',
     },
     'close-all-window': {
-      suggested_key: { default: 'Alt+Shift+W' },
-      description: '現在のウィンドウの全タブをクローズ',
+      description:
+        '現在のウィンドウの全タブをクローズ (危険なためデフォルトキー未設定。chrome://extensions/shortcuts で割り当て)',
     },
     'switch-tab-fallback': {
       suggested_key: { default: 'Alt+Q' },
