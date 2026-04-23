@@ -1,9 +1,11 @@
+import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Slider } from '@/shared/components/ui/slider';
 import { Switch } from '@/shared/components/ui/switch';
+import { sendMessage } from '@/shared/lib/runtime-client';
 import { useSettingsStore } from '@/shared/stores/settings-store';
 
 const PRESETS = [
@@ -19,8 +21,97 @@ function isDirty<T>(a: T, b: T): boolean {
   return JSON.stringify(a) !== JSON.stringify(b);
 }
 
+function bytesToLabel(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${bytes} B`;
+}
+
+interface ThumbCacheSectionProps {
+  trigger: number;
+  onCleared: () => void;
+}
+
+interface ThumbCacheState {
+  stats: { count: number; approximateBytes: number } | null;
+  clearing: boolean;
+  error: string | null;
+}
+
+async function fetchThumbStats(): Promise<{ count: number; approximateBytes: number }> {
+  return sendMessage({ kind: 'getThumbnailStats' });
+}
+
+function ThumbCacheSection({ trigger, onCleared }: ThumbCacheSectionProps) {
+  const [state, setState] = useState<ThumbCacheState>({
+    stats: null,
+    clearing: false,
+    error: null,
+  });
+
+  const load = useCallback(async () => {
+    try {
+      const stats = await fetchThumbStats();
+      setState((prev) => ({ ...prev, stats, error: null }));
+    } catch (e) {
+      setState((prev) => ({ ...prev, error: e instanceof Error ? e.message : String(e) }));
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load, trigger]);
+
+  const onClear = async () => {
+    if (!window.confirm('サムネイルキャッシュをすべて削除しますか？')) return;
+    setState((prev) => ({ ...prev, clearing: true }));
+    try {
+      await sendMessage({ kind: 'clearThumbnails' });
+      const stats = await fetchThumbStats();
+      setState({ stats, clearing: false, error: null });
+      onCleared();
+    } catch (e) {
+      setState((prev) => ({
+        ...prev,
+        clearing: false,
+        error: e instanceof Error ? e.message : String(e),
+      }));
+    }
+  };
+
+  const { stats, clearing, error } = state;
+
+  return (
+    <div>
+      <Label>サムネイルキャッシュ</Label>
+      <p className="text-xs text-muted-foreground mt-1">
+        Alt+Q のオーバーレイで各タブの「最後にアクティブだった時の画面」を表示するためのキャッシュ。
+        上限 100 件、7 日経過で自動削除されます。
+      </p>
+      <div className="flex items-center gap-3 mt-3">
+        <span className="text-sm text-muted-foreground tabular-nums">
+          {stats ? `${stats.count} 件 / ${bytesToLabel(stats.approximateBytes)}` : '…'}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void onClear()}
+          disabled={clearing || (stats?.count ?? 0) === 0}
+        >
+          {clearing ? 'クリア中…' : 'キャッシュをクリア'}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => void load()}>
+          再読み込み
+        </Button>
+      </div>
+      {error && <p className="text-xs text-destructive mt-2">{error}</p>}
+    </div>
+  );
+}
+
 export function General() {
   const { draft, settings, setDraft, save, reset, saving, loading, error } = useSettingsStore();
+  const [thumbTrigger, setThumbTrigger] = useState(0);
   if (loading) return <p className="text-sm text-muted-foreground">読み込み中...</p>;
   const dirty = isDirty(settings, draft);
   return (
@@ -102,6 +193,10 @@ export function General() {
             className="w-32"
           />
         </div>
+
+        <hr className="border-border" />
+
+        <ThumbCacheSection trigger={thumbTrigger} onCleared={() => setThumbTrigger((n) => n + 1)} />
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 

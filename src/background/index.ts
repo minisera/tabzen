@@ -5,6 +5,7 @@ import { closeAllInWindow, closeInactiveNow, runAutoClean } from './auto-cleaner
 import { closeDuplicates, findDuplicates } from './duplicate-finder';
 import { getMruForWindow } from './mru-stack';
 import { getTabMeta } from '@/shared/storage/local-state';
+import { expireOldThumbnails, getThumbnails } from '@/shared/storage/thumbnails';
 import type { ContentConfirmResponse, ContentRequest } from '@/shared/types';
 
 const ALARM_SCAN = 'tab-tidy-scan';
@@ -46,24 +47,32 @@ let directCycle: {
   lastTick: number;
 } | null = null;
 
-async function tickDirectCycle(windowId: number, freshSnapshot: number[]): Promise<void> {
+async function tickDirectCycle(
+  windowId: number,
+  freshSnapshot: number[],
+  direction: 'next' | 'prev',
+): Promise<void> {
   if (freshSnapshot.length < 2) return;
   const now = Date.now();
   // cycle 継続中は初回取得した snapshot を維持する。タブ切替で MRU が
-  // 更新されても snapshot を差し替えず、cursor だけ次に進める。
+  // 更新されても snapshot を差し替えず、cursor だけ動かす。
   const continuing =
     directCycle !== null &&
     directCycle.windowId === windowId &&
     now - directCycle.lastTick < CYCLE_TIMEOUT_MS;
 
   if (continuing && directCycle) {
-    directCycle.cursor = (directCycle.cursor + 1) % directCycle.snapshot.length;
+    const len = directCycle.snapshot.length;
+    const delta = direction === 'next' ? 1 : -1;
+    directCycle.cursor = (directCycle.cursor + delta + len) % len;
     directCycle.lastTick = now;
   } else {
+    const len = freshSnapshot.length;
+    const initialCursor = direction === 'next' ? Math.min(1, len - 1) : len - 1;
     directCycle = {
       windowId,
       snapshot: freshSnapshot,
-      cursor: Math.min(1, freshSnapshot.length - 1),
+      cursor: initialCursor,
       lastTick: now,
     };
   }
@@ -77,24 +86,35 @@ async function tickDirectCycle(windowId: number, freshSnapshot: number[]): Promi
   }
 }
 
-async function handleTabSwitchFallback(tab: chrome.tabs.Tab | undefined): Promise<void> {
+async function handleTabSwitchFallback(
+  tab: chrome.tabs.Tab | undefined,
+  direction: 'next' | 'prev',
+): Promise<void> {
   const win = await resolveWindowId(tab);
   if (typeof win !== 'number') {
     console.debug('[Tab Tidy] Alt+Q: no window');
     return;
   }
   const ids = (await getMruForWindow(win)).slice(0, CYCLE_MAX);
-  console.debug('[Tab Tidy] Alt+Q MRU ids:', ids);
+  console.debug('[Tab Tidy] Alt+Q MRU ids:', ids, 'direction:', direction);
   if (ids.length < 2) return;
 
   const map = await getTabMeta();
-  const items = ids.map((id) => map[id]).filter((v): v is NonNullable<typeof v> => !!v);
+  const thumbs = await getThumbnails();
+  const items = ids
+    .map((id) => {
+      const meta = map[id];
+      if (!meta) return null;
+      return { ...meta, thumbnail: thumbs[id]?.dataUrl };
+    })
+    .filter((v): v is NonNullable<typeof v> => !!v);
 
   const [active] = await chrome.tabs.query({ active: true, windowId: win });
   if (typeof active?.id === 'number') {
     try {
       await chrome.tabs.sendMessage(active.id, {
-        kind: 'tabSwitchNext',
+        kind: 'tabSwitchCycle',
+        direction,
         items,
       } satisfies ContentRequest);
       console.debug('[Tab Tidy] Alt+Q: overlay requested on tab', active.id);
@@ -103,7 +123,7 @@ async function handleTabSwitchFallback(tab: chrome.tabs.Tab | undefined): Promis
       console.debug('[Tab Tidy] Alt+Q: content script unreachable, falling back', err);
     }
   }
-  await tickDirectCycle(win, ids);
+  await tickDirectCycle(win, ids, direction);
 }
 
 async function injectContentScriptIntoExistingTabs(): Promise<void> {
@@ -150,6 +170,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (result.suspended > 0 || result.closed > 0) {
     console.log('[Tab Tidy] auto clean:', result);
   }
+  const removed = await expireOldThumbnails();
+  if (removed > 0) {
+    console.debug('[Tab Tidy] expired thumbnails:', removed);
+  }
 });
 
 chrome.commands.onCommand.addListener(async (command, tab) => {
@@ -194,7 +218,11 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
       return;
     }
     case 'switch-tab-fallback': {
-      await handleTabSwitchFallback(tab);
+      await handleTabSwitchFallback(tab, 'next');
+      return;
+    }
+    case 'switch-tab-fallback-prev': {
+      await handleTabSwitchFallback(tab, 'prev');
       return;
     }
     default:

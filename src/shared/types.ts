@@ -1,6 +1,8 @@
 import type { ClosedTab, TabMeta } from '@/shared/schema/tab-meta';
 import type { Settings } from '@/shared/schema/settings';
 
+export type TabSwitchItem = TabMeta & { thumbnail?: string };
+
 export interface Stats {
   totalTabs: number;
   inactiveCandidates: number;
@@ -26,14 +28,20 @@ export type RuntimeRequest =
   | { kind: 'clearHistory' }
   | { kind: 'getMruPreview'; windowId?: number }
   | { kind: 'switchToTab'; tabId: number }
-  | { kind: 'reportFormDirty'; dirty: boolean };
+  | { kind: 'reportFormDirty'; dirty: boolean }
+  | { kind: 'getThumbnailStats' }
+  | { kind: 'clearThumbnails' };
 
 export type RuntimeResponse<T = unknown> = { ok: true; data?: T } | { ok: false; error: string };
 
 /** Service Worker → Content Script へのメッセージ */
 export type ContentRequest =
   | { kind: 'confirm'; message: string }
-  | { kind: 'tabSwitchNext'; items: import('./schema/tab-meta').TabMeta[] };
+  | {
+      kind: 'tabSwitchCycle';
+      direction: 'next' | 'prev';
+      items: TabSwitchItem[];
+    };
 
 export interface ContentConfirmResponse {
   ok: boolean;
@@ -51,7 +59,9 @@ export type RuntimeResponseMap = {
   listHistory: ClosedTab[];
   restoreAt: void;
   clearHistory: void;
-  getMruPreview: TabMeta[];
+  getMruPreview: TabSwitchItem[];
   switchToTab: void;
   reportFormDirty: void;
+  getThumbnailStats: { count: number; approximateBytes: number };
+  clearThumbnails: void;
 };

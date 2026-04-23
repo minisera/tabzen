@@ -49,7 +49,11 @@ export default defineManifest({
     },
     'switch-tab-fallback': {
       suggested_key: { default: 'Alt+Q' },
-      description: 'Arc風MRUタブ切替 (Ctrl+Tabのフォールバック)',
+      description: 'MRU タブ切替 (次へ)',
+    },
+    'switch-tab-fallback-prev': {
+      suggested_key: { default: 'Alt+Shift+Q' },
+      description: 'MRU タブ切替 (前へ)',
     },
   },
 });

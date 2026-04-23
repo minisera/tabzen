@@ -1,18 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { TabMeta } from '@/shared/schema/tab-meta';
 import { sendMessage } from '@/shared/lib/runtime-client';
+import type { TabSwitchItem } from '@/shared/types';
 import { relativeFromNow } from '@/shared/utils/time';
 import { cn } from '@/shared/lib/utils';
 
 interface State {
   open: boolean;
-  items: TabMeta[];
+  items: TabSwitchItem[];
   selected: number;
 }
 
 const INITIAL: State = { open: false, items: [], selected: 0 };
-const EVENT_TAB_SWITCH_NEXT = 'tab-tidy:tab-switch-next';
-const AUTO_COMMIT_MS = 1500;
+const EVENT_TAB_SWITCH = 'tab-tidy:tab-switch';
 
 function safeHost(url: string): string {
   try {
@@ -25,32 +24,19 @@ function safeHost(url: string): string {
 export function TabSwitcherOverlay() {
   const [state, setState] = useState<State>(INITIAL);
   const stateRef = useRef<State>(INITIAL);
-  const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
 
-  const clearTimer = useCallback(() => {
-    if (timerRef.current !== null) {
-      window.clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
+  const close = useCallback(() => {
+    setState(INITIAL);
   }, []);
 
-  const close = useCallback(() => {
-    clearTimer();
+  const commitTabId = useCallback((tabId: number) => {
     setState(INITIAL);
-  }, [clearTimer]);
-
-  const commitTabId = useCallback(
-    (tabId: number) => {
-      clearTimer();
-      setState(INITIAL);
-      void sendMessage({ kind: 'switchToTab', tabId });
-    },
-    [clearTimer],
-  );
+    void sendMessage({ kind: 'switchToTab', tabId });
+  }, []);
 
   const commitCurrent = useCallback(() => {
     const cur = stateRef.current;
@@ -59,33 +45,30 @@ export function TabSwitcherOverlay() {
     if (target) {
       void sendMessage({ kind: 'switchToTab', tabId: target.tabId });
     }
-    clearTimer();
     setState(INITIAL);
-  }, [clearTimer]);
-
-  const scheduleAutoCommit = useCallback(() => {
-    clearTimer();
-    timerRef.current = window.setTimeout(() => {
-      timerRef.current = null;
-      commitCurrent();
-    }, AUTO_COMMIT_MS);
-  }, [clearTimer, commitCurrent]);
+  }, []);
 
   useEffect(() => {
-    const onNext = (ev: Event) => {
-      const detail = (ev as CustomEvent<{ items?: TabMeta[] }>).detail;
+    const onTick = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ items?: TabSwitchItem[]; direction?: 'next' | 'prev' }>)
+        .detail;
       const incoming = detail?.items ?? [];
+      const direction = detail?.direction ?? 'next';
       const cur = stateRef.current;
+
       if (!cur.open) {
         if (incoming.length < 2) return;
-        setState({ open: true, items: incoming, selected: 1 });
-      } else {
-        const total = cur.items.length;
-        if (total === 0) return;
-        const next = (cur.selected + 1) % total;
-        setState({ ...cur, selected: next });
+        // 初回: 2番目 (next) または 末尾 (prev) を選択
+        const selected = direction === 'next' ? 1 : incoming.length - 1;
+        setState({ open: true, items: incoming, selected });
+        return;
       }
-      scheduleAutoCommit();
+
+      const total = cur.items.length;
+      if (total === 0) return;
+      const delta = direction === 'next' ? 1 : -1;
+      const next = (cur.selected + delta + total) % total;
+      setState({ ...cur, selected: next });
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -101,13 +84,32 @@ export function TabSwitcherOverlay() {
       }
     };
 
-    window.addEventListener(EVENT_TAB_SWITCH_NEXT, onNext);
-    document.addEventListener('keydown', onKeyDown, true);
-    return () => {
-      window.removeEventListener(EVENT_TAB_SWITCH_NEXT, onNext);
-      document.removeEventListener('keydown', onKeyDown, true);
+    // Alt (macOS でも Option = Alt) リリースで確定。ユーザーが Alt+Q を
+    // 押して Alt を離すまで巡回する Cmd+Tab ライクな UX。
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (!stateRef.current.open) return;
+      if (e.key === 'Alt') {
+        e.preventDefault();
+        e.stopPropagation();
+        commitCurrent();
+      }
     };
-  }, [close, commitCurrent, scheduleAutoCommit]);
+
+    const onBlur = () => {
+      if (stateRef.current.open) setState(INITIAL);
+    };
+
+    window.addEventListener(EVENT_TAB_SWITCH, onTick);
+    document.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener('keyup', onKeyUp, true);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener(EVENT_TAB_SWITCH, onTick);
+      document.removeEventListener('keydown', onKeyDown, true);
+      document.removeEventListener('keyup', onKeyUp, true);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, [close, commitCurrent]);
 
   if (!state.open) return null;
 
@@ -126,7 +128,9 @@ export function TabSwitcherOverlay() {
           <span className="flex items-center gap-1">
             <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Alt+Q</kbd>
             <span>次</span>
-            <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Enter</kbd>
+            <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Alt+Shift+Q</kbd>
+            <span>前</span>
+            <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Alt↑</kbd>
             <span>確定</span>
             <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Esc</kbd>
           </span>
@@ -137,24 +141,39 @@ export function TabSwitcherOverlay() {
               <button
                 type="button"
                 className={cn(
-                  'w-full px-4 py-2 flex items-center gap-3 text-left transition-colors',
+                  'w-full px-3 py-2 flex items-center gap-3 text-left transition-colors',
                   idx === state.selected ? 'bg-accent' : 'hover:bg-accent/50',
                 )}
                 onClick={() => commitTabId(item.tabId)}
                 onMouseEnter={() => setState((s) => (s.open ? { ...s, selected: idx } : s))}
               >
-                {item.favIconUrl ? (
-                  <img src={item.favIconUrl} className="w-4 h-4 shrink-0" alt="" />
+                {item.thumbnail ? (
+                  <div className="relative w-[96px] h-[60px] rounded-sm bg-muted shrink-0 overflow-hidden border border-border">
+                    <img src={item.thumbnail} className="w-full h-full object-cover" alt="" />
+                    {item.favIconUrl && (
+                      <img
+                        src={item.favIconUrl}
+                        className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded-sm bg-white/80 p-0.5"
+                        alt=""
+                      />
+                    )}
+                  </div>
                 ) : (
-                  <div className="w-4 h-4 rounded-sm bg-muted shrink-0" />
+                  <div className="w-[96px] h-[60px] rounded-sm bg-muted shrink-0 flex items-center justify-center">
+                    {item.favIconUrl ? (
+                      <img src={item.favIconUrl} className="w-6 h-6" alt="" />
+                    ) : (
+                      <div className="w-6 h-6 rounded-sm bg-card" />
+                    )}
+                  </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate">{item.title || item.url}</p>
+                  <p className="text-sm truncate font-medium">{item.title || item.url}</p>
                   <p className="text-xs text-muted-foreground truncate">{safeHost(item.url)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {relativeFromNow(item.lastActiveAt)}
+                  </p>
                 </div>
-                <span className="text-xs text-muted-foreground shrink-0">
-                  {relativeFromNow(item.lastActiveAt)}
-                </span>
               </button>
             </li>
           ))}

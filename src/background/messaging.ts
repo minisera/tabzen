@@ -11,6 +11,7 @@ import {
 import { closeDuplicates, findDuplicates } from './duplicate-finder';
 import { clearHistory, listHistory, restoreAt } from './restore-history';
 import { getMruForWindow } from './mru-stack';
+import { clearAllThumbnails, getThumbnails, getThumbnailStats } from '@/shared/storage/thumbnails';
 
 async function computeStats(): Promise<Stats> {
   const map = await getTabMeta();
@@ -95,12 +96,26 @@ export function initMessaging(): void {
             }
             const ids = await getMruForWindow(win);
             const map = await getTabMeta();
-            const items = ids.map((id) => map[id]).filter((v): v is NonNullable<typeof v> => !!v);
+            const thumbs = await getThumbnails();
+            const items = ids
+              .map((id) => {
+                const meta = map[id];
+                if (!meta) return null;
+                return { ...meta, thumbnail: thumbs[id]?.dataUrl };
+              })
+              .filter((v): v is NonNullable<typeof v> => !!v);
             sendResponse({ ok: true, data: items });
             return;
           }
           case 'switchToTab':
             await chrome.tabs.update(msg.tabId, { active: true });
+            sendResponse({ ok: true });
+            return;
+          case 'getThumbnailStats':
+            sendResponse({ ok: true, data: await getThumbnailStats() });
+            return;
+          case 'clearThumbnails':
+            await clearAllThumbnails();
             sendResponse({ ok: true });
             return;
           case 'reportFormDirty': {

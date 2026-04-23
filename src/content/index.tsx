@@ -6,7 +6,7 @@ import cssText from '@/shared/styles/globals.css?inline';
 import type { ContentRequest } from '@/shared/types';
 
 const HOST_ID = 'tab-tidy-root';
-const EVENT_TAB_SWITCH_NEXT = 'tab-tidy:tab-switch-next';
+const EVENT_TAB_SWITCH = 'tab-tidy:tab-switch';
 
 function mount() {
   if (document.getElementById(HOST_ID)) return;
@@ -39,7 +39,7 @@ function mount() {
 function isContentRequest(v: unknown): v is ContentRequest {
   if (typeof v !== 'object' || v === null) return false;
   const kind = (v as { kind?: unknown }).kind;
-  return kind === 'confirm' || kind === 'tabSwitchNext';
+  return kind === 'confirm' || kind === 'tabSwitchCycle';
 }
 
 chrome.runtime.onMessage.addListener((raw, _sender, sendResponse) => {
@@ -49,9 +49,13 @@ chrome.runtime.onMessage.addListener((raw, _sender, sendResponse) => {
     sendResponse({ ok });
     return false;
   }
-  if (raw.kind === 'tabSwitchNext') {
-    console.debug('[Tab Tidy] tabSwitchNext received with', raw.items.length, 'items');
-    window.dispatchEvent(new CustomEvent(EVENT_TAB_SWITCH_NEXT, { detail: { items: raw.items } }));
+  if (raw.kind === 'tabSwitchCycle') {
+    console.debug('[Tab Tidy] tabSwitchCycle', raw.direction, 'with', raw.items.length, 'items');
+    window.dispatchEvent(
+      new CustomEvent(EVENT_TAB_SWITCH, {
+        detail: { items: raw.items, direction: raw.direction },
+      }),
+    );
     sendResponse({ ok: true });
     return false;
   }

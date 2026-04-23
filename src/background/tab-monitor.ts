@@ -1,6 +1,8 @@
 import type { TabMeta } from '@/shared/schema/tab-meta';
 import { getTabMeta, setTabMeta } from '@/shared/storage/local-state';
+import { pruneThumbnails, removeThumbnail } from '@/shared/storage/thumbnails';
 import { bringToFront, cleanupStacksForKnownTabs, removeTab as removeFromMru } from './mru-stack';
+import { captureActiveTabThumbnail } from './thumbnail-capture';
 
 function toMeta(tab: chrome.tabs.Tab, prev: TabMeta | undefined, now: number): TabMeta | null {
   if (tab.id === undefined || tab.windowId === undefined) return null;
@@ -55,6 +57,11 @@ export function initTabMonitor(): void {
       // タブが既に閉じられていた
     }
     await touchActive(tabId, windowId);
+    // アクティブ化直後にページ描画が落ち着く時間を少し置いてスクショを撮る。
+    // 非同期で握りつぶすので touchActive を待たせない。
+    setTimeout(() => {
+      void captureActiveTabThumbnail(tabId, windowId);
+    }, 250);
   });
 
   chrome.tabs.onRemoved.addListener(async (tabId, info) => {
@@ -62,6 +69,7 @@ export function initTabMonitor(): void {
     const map = await getTabMeta();
     delete map[tabId];
     await setTabMeta(map);
+    await removeThumbnail(tabId);
   });
 
   chrome.tabs.onReplaced.addListener(async (addedTabId, removedTabId) => {
@@ -100,4 +108,5 @@ export async function bootstrapCurrentTabs(): Promise<void> {
 
   await setTabMeta(map);
   await cleanupStacksForKnownTabs(knownIds);
+  await pruneThumbnails(knownIds);
 }
