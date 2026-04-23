@@ -50,6 +50,7 @@ chrome.runtime.onMessage.addListener((raw, _sender, sendResponse) => {
     return false;
   }
   if (raw.kind === 'tabSwitchNext') {
+    console.debug('[Tab Tidy] tabSwitchNext received with', raw.items.length, 'items');
     window.dispatchEvent(new CustomEvent(EVENT_TAB_SWITCH_NEXT, { detail: { items: raw.items } }));
     sendResponse({ ok: true });
     return false;
@@ -57,11 +58,10 @@ chrome.runtime.onMessage.addListener((raw, _sender, sendResponse) => {
   return false;
 });
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', mount, { once: true });
-} else {
-  mount();
-}
+// React ルートは Shadow DOM 内で動くため、ページの DOMContentLoaded を
+// 待つ必要はない。document_start で即座にマウントし、Alt+Q のメッセージ
+// を受けた時点で必ずリスナーが登録されている状態にする。
+mount();
 
 initFormDetector();
 

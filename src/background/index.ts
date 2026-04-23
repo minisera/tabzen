@@ -46,22 +46,15 @@ let directCycle: {
   lastTick: number;
 } | null = null;
 
-function snapshotEquals(a: number[], b: number[]): boolean {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) return false;
-  }
-  return true;
-}
-
-async function tickDirectCycle(windowId: number, snapshot: number[]): Promise<void> {
-  if (snapshot.length < 2) return;
+async function tickDirectCycle(windowId: number, freshSnapshot: number[]): Promise<void> {
+  if (freshSnapshot.length < 2) return;
   const now = Date.now();
+  // cycle 継続中は初回取得した snapshot を維持する。タブ切替で MRU が
+  // 更新されても snapshot を差し替えず、cursor だけ次に進める。
   const continuing =
     directCycle !== null &&
     directCycle.windowId === windowId &&
-    now - directCycle.lastTick < CYCLE_TIMEOUT_MS &&
-    snapshotEquals(directCycle.snapshot, snapshot);
+    now - directCycle.lastTick < CYCLE_TIMEOUT_MS;
 
   if (continuing && directCycle) {
     directCycle.cursor = (directCycle.cursor + 1) % directCycle.snapshot.length;
@@ -69,8 +62,8 @@ async function tickDirectCycle(windowId: number, snapshot: number[]): Promise<vo
   } else {
     directCycle = {
       windowId,
-      snapshot,
-      cursor: Math.min(1, snapshot.length - 1),
+      snapshot: freshSnapshot,
+      cursor: Math.min(1, freshSnapshot.length - 1),
       lastTick: now,
     };
   }
@@ -86,8 +79,12 @@ async function tickDirectCycle(windowId: number, snapshot: number[]): Promise<vo
 
 async function handleTabSwitchFallback(tab: chrome.tabs.Tab | undefined): Promise<void> {
   const win = await resolveWindowId(tab);
-  if (typeof win !== 'number') return;
+  if (typeof win !== 'number') {
+    console.debug('[Tab Tidy] Alt+Q: no window');
+    return;
+  }
   const ids = (await getMruForWindow(win)).slice(0, CYCLE_MAX);
+  console.debug('[Tab Tidy] Alt+Q MRU ids:', ids);
   if (ids.length < 2) return;
 
   const map = await getTabMeta();
@@ -100,18 +97,45 @@ async function handleTabSwitchFallback(tab: chrome.tabs.Tab | undefined): Promis
         kind: 'tabSwitchNext',
         items,
       } satisfies ContentRequest);
+      console.debug('[Tab Tidy] Alt+Q: overlay requested on tab', active.id);
       return;
-    } catch {
-      // Content Script が動かないページ → 直接切替にフォールバック
+    } catch (err) {
+      console.debug('[Tab Tidy] Alt+Q: content script unreachable, falling back', err);
     }
   }
   await tickDirectCycle(win, ids);
+}
+
+async function injectContentScriptIntoExistingTabs(): Promise<void> {
+  const manifest = chrome.runtime.getManifest();
+  const scripts = manifest.content_scripts ?? [];
+  for (const cs of scripts) {
+    const files = cs.js ?? [];
+    const css = cs.css ?? [];
+    if (files.length === 0 && css.length === 0) continue;
+    const tabs = await chrome.tabs.query({ url: cs.matches });
+    for (const tab of tabs) {
+      if (typeof tab.id !== 'number') continue;
+      if (tab.url?.startsWith('chrome://') || tab.url?.startsWith('chrome-extension://')) continue;
+      try {
+        if (files.length > 0) {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id, allFrames: cs.all_frames },
+            files,
+          });
+        }
+      } catch (err) {
+        console.debug('[Tab Tidy] inject skipped', tab.url, err);
+      }
+    }
+  }
 }
 
 chrome.runtime.onInstalled.addListener(async (details) => {
   console.log('[Tab Tidy] onInstalled:', details.reason);
   await bootstrapCurrentTabs();
   await scheduleScan();
+  await injectContentScriptIntoExistingTabs();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
