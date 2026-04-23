@@ -82,24 +82,36 @@ export function TabSwitcherOverlay() {
   }, [clearTimer, updateState]);
 
   useEffect(() => {
+    console.log('[Tab Tidy][Overlay] useEffect setup: registering listeners');
     const onTick = (ev: Event) => {
       const detail = (ev as CustomEvent<{ items?: TabSwitchItem[]; direction?: 'next' | 'prev' }>)
         .detail;
       const incoming = detail?.items ?? [];
       const direction = detail?.direction ?? 'next';
+      console.log(
+        '[Tab Tidy][Overlay] onTick received',
+        direction,
+        'items:',
+        incoming.length,
+        'current state.open:',
+        stateRef.current.open,
+      );
 
       updateState((prev) => {
         if (!prev.open) {
-          if (incoming.length < 2) return prev;
+          if (incoming.length < 2) {
+            console.log('[Tab Tidy][Overlay] onTick: not opening (items < 2)');
+            return prev;
+          }
           const selected = direction === 'next' ? 1 : incoming.length - 1;
-          console.debug('[Tab Tidy] overlay open', { direction, selected });
+          console.log('[Tab Tidy][Overlay] overlay open', { direction, selected });
           return { open: true, items: incoming, selected };
         }
         const total = prev.items.length;
         if (total === 0) return prev;
         const delta = direction === 'next' ? 1 : -1;
         const next = (prev.selected + delta + total) % total;
-        console.debug('[Tab Tidy] overlay move', prev.selected, '→', next);
+        console.log('[Tab Tidy][Overlay] overlay move', prev.selected, '→', next);
         return { ...prev, selected: next };
       });
       scheduleFallbackCommit();
@@ -107,6 +119,7 @@ export function TabSwitcherOverlay() {
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (!stateRef.current.open) return;
+      console.log('[Tab Tidy][Overlay] keydown while open:', e.key);
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
@@ -123,6 +136,7 @@ export function TabSwitcherOverlay() {
     // こともあるため、state.open が true のときだけ反応する。
     const onKeyUp = (e: KeyboardEvent) => {
       if (!stateRef.current.open) return;
+      console.log('[Tab Tidy][Overlay] keyup while open:', e.key);
       if (e.key === 'Alt') {
         e.preventDefault();
         e.stopPropagation();
@@ -131,7 +145,10 @@ export function TabSwitcherOverlay() {
     };
 
     const onBlur = () => {
-      if (stateRef.current.open) close();
+      if (stateRef.current.open) {
+        console.log('[Tab Tidy][Overlay] blur while open — closing');
+        close();
+      }
     };
 
     window.addEventListener(EVENT_TAB_SWITCH, onTick);
@@ -139,6 +156,7 @@ export function TabSwitcherOverlay() {
     document.addEventListener('keyup', onKeyUp, true);
     window.addEventListener('blur', onBlur);
     return () => {
+      console.log('[Tab Tidy][Overlay] useEffect cleanup: removing listeners');
       window.removeEventListener(EVENT_TAB_SWITCH, onTick);
       document.removeEventListener('keydown', onKeyDown, true);
       document.removeEventListener('keyup', onKeyUp, true);
