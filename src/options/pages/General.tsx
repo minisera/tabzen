@@ -5,6 +5,7 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Slider } from '@/shared/components/ui/slider';
 import { Switch } from '@/shared/components/ui/switch';
+import { DurationInput } from '@/shared/components/duration-input';
 import { sendMessage } from '@/shared/lib/runtime-client';
 import { useSettingsStore } from '@/shared/stores/settings-store';
 
@@ -154,31 +155,27 @@ export function General() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="suspendMin">サスペンド閾値</Label>
-            <span className="text-sm tabular-nums">{draft.suspendAfterMinutes} 分</span>
-          </div>
-          <Slider
+          <Label htmlFor="suspendMin">サスペンド閾値</Label>
+          <DurationInput
             id="suspendMin"
-            min={1}
-            max={1440}
             value={draft.suspendAfterMinutes}
-            onChange={(e) => setDraft({ suspendAfterMinutes: Number(e.target.value) })}
+            onChange={(m) => setDraft({ suspendAfterMinutes: m })}
+            minMinutes={1}
+            maxMinutes={24 * 60}
           />
+          <p className="text-xs text-muted-foreground">最大 24 時間。</p>
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="closeMin">クローズ閾値</Label>
-            <span className="text-sm tabular-nums">{draft.closeAfterMinutes} 分</span>
-          </div>
-          <Slider
+          <Label htmlFor="closeMin">クローズ閾値</Label>
+          <DurationInput
             id="closeMin"
-            min={2}
-            max={30 * 24 * 60}
             value={draft.closeAfterMinutes}
-            onChange={(e) => setDraft({ closeAfterMinutes: Number(e.target.value) })}
+            onChange={(m) => setDraft({ closeAfterMinutes: m })}
+            minMinutes={2}
+            maxMinutes={30 * 24 * 60}
           />
+          <p className="text-xs text-muted-foreground">最大 30 日。</p>
         </div>
 
         <div className="space-y-2">
