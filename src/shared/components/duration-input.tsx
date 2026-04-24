@@ -66,9 +66,9 @@ export function DurationInput({
         max={maxDisplay}
         value={displayValue}
         onChange={(e) => handleValueChange(e.target.value)}
-        className="w-24"
+        className="w-28 shrink-0"
       />
-      <div className="inline-flex rounded-md border border-border overflow-hidden">
+      <div className="inline-flex rounded-md border border-border overflow-hidden shrink-0">
         {units.map((u) => (
           <Button
             key={u}

@@ -156,7 +156,7 @@ export function TabSwitcherOverlay() {
       style={{ pointerEvents: 'auto' }}
     >
       <div
-        className="w-[560px] max-h-[92vh] bg-card text-card-foreground rounded-xl shadow-2xl border border-border overflow-hidden flex flex-col"
+        className="w-[720px] max-h-[92vh] bg-card text-card-foreground rounded-xl shadow-2xl border border-border overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-4 py-2 border-b border-border flex items-center justify-between text-xs text-muted-foreground shrink-0">
@@ -177,7 +177,7 @@ export function TabSwitcherOverlay() {
               <button
                 type="button"
                 className={cn(
-                  'w-full px-3 py-1.5 flex items-center gap-3 text-left transition-colors',
+                  'w-full px-4 py-2 flex items-center gap-3 text-left transition-colors',
                   idx === state.selected ? 'bg-accent' : 'hover:bg-accent/50',
                 )}
                 onClick={() => commitTabId(item.tabId)}
@@ -187,22 +187,22 @@ export function TabSwitcherOverlay() {
                 }}
               >
                 {item.thumbnail ? (
-                  <div className="relative w-[72px] h-[44px] rounded-sm bg-muted shrink-0 overflow-hidden border border-border">
+                  <div className="relative w-[112px] h-[70px] rounded-sm bg-muted shrink-0 overflow-hidden border border-border">
                     <img src={item.thumbnail} className="w-full h-full object-cover" alt="" />
                     {item.favIconUrl && (
                       <img
                         src={item.favIconUrl}
-                        className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-sm bg-white/80 p-0.5"
+                        className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded-sm bg-white/80 p-0.5"
                         alt=""
                       />
                     )}
                   </div>
                 ) : (
-                  <div className="w-[72px] h-[44px] rounded-sm bg-muted shrink-0 flex items-center justify-center">
+                  <div className="w-[112px] h-[70px] rounded-sm bg-muted shrink-0 flex items-center justify-center">
                     {item.favIconUrl ? (
-                      <img src={item.favIconUrl} className="w-5 h-5" alt="" />
+                      <img src={item.favIconUrl} className="w-6 h-6" alt="" />
                     ) : (
-                      <div className="w-5 h-5 rounded-sm bg-card" />
+                      <div className="w-6 h-6 rounded-sm bg-card" />
                     )}
                   </div>
                 )}
