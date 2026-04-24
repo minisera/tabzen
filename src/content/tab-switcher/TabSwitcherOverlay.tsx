@@ -166,7 +166,7 @@ export function TabSwitcherOverlay() {
             <span>次</span>
             <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Alt+Shift+Q</kbd>
             <span>前</span>
-            <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">修飾キー↑</kbd>
+            <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Alt↑</kbd>
             <span>確定</span>
             <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Esc</kbd>
           </span>
