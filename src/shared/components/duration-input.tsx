@@ -49,8 +49,12 @@ export function DurationInput({
   };
 
   const handleValueChange = (raw: string) => {
+    // 空欄や 0 は Number("") = 0 経由で minMinutes に強制され、
+    // unit と value の整合性が崩れる (表示「1 時間」 / 実値 2 分のような
+    // 不一致になりバリデーションが誤って発火)。1 未満は無視する。
+    if (raw.trim() === '') return;
     const n = Number(raw);
-    if (!Number.isFinite(n)) return;
+    if (!Number.isFinite(n) || n < 1) return;
     const minutes = Math.max(minMinutes, Math.min(maxMinutes, Math.round(n) * scale));
     onChange(minutes);
   };
