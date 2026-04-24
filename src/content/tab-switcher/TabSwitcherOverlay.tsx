@@ -76,15 +76,27 @@ export function TabSwitcherOverlay() {
       const direction = detail?.direction ?? 'next';
 
       const prev = stateRef.current;
+      console.log(
+        '[Tab Zen][Overlay] onTick',
+        direction,
+        'incoming:',
+        incoming.length,
+        'prev.open:',
+        prev.open,
+        'prev.selected:',
+        prev.selected,
+      );
       if (!prev.open) {
         if (incoming.length < 2) return;
         const selected = direction === 'next' ? 1 : incoming.length - 1;
+        console.log('[Tab Zen][Overlay] opening with selected=', selected);
         applyState({ open: true, items: incoming, selected });
       } else {
         const total = prev.items.length;
         if (total === 0) return;
         const delta = direction === 'next' ? 1 : -1;
         const sel = (prev.selected + delta + total) % total;
+        console.log('[Tab Zen][Overlay] moving', prev.selected, '->', sel);
         applyState({ ...prev, selected: sel });
       }
     };
