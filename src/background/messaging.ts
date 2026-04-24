@@ -6,6 +6,7 @@ import {
   closeInactiveNow,
   exclusionReason,
   getActiveTabIds,
+  selectCloseTargets,
   suspendAll,
 } from './auto-cleaner';
 import { closeDuplicates, findDuplicates } from './duplicate-finder';
@@ -18,13 +19,16 @@ async function computeStats(): Promise<Stats> {
   const settings = await getSettings();
   const activeIds = await getActiveTabIds();
   const list = Object.values(map);
-  const inactiveCandidates = list.filter(
+  const now = Date.now();
+  const managedCount = list.filter(
     (m) => exclusionReason(m, settings, activeIds) === 'none',
   ).length;
+  const closeCandidates = selectCloseTargets(list, settings, activeIds, now).length;
   const suspendedCount = list.filter((m) => m.suspended).length;
   return {
     totalTabs: list.length,
-    inactiveCandidates,
+    closeCandidates,
+    managedCount,
     suspendedCount,
   };
 }

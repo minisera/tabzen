@@ -75,9 +75,21 @@ export default function App() {
         ) : (
           <>
             <Card className="p-3 grid grid-cols-3 gap-2 text-center">
-              <Stat label="タブ" value={stats?.totalTabs ?? 0} />
-              <Stat label="非アクティブ" value={stats?.inactiveCandidates ?? 0} />
-              <Stat label="サスペンド済" value={stats?.suspendedCount ?? 0} />
+              <Stat
+                label="タブ数"
+                value={stats?.totalTabs ?? 0}
+                hint="このブラウザで開いているタブの総数"
+              />
+              <Stat
+                label="クローズ候補"
+                value={stats?.closeCandidates ?? 0}
+                hint="クローズ閾値を超えていて「今すぐ閉じる」の対象になるタブ数"
+              />
+              <Stat
+                label="サスペンド済"
+                value={stats?.suspendedCount ?? 0}
+                hint="メモリ解放済み (chrome.tabs.discard 済み) のタブ数"
+              />
             </Card>
 
             <section className="space-y-2">
@@ -90,22 +102,22 @@ export default function App() {
                   disabled={pending !== null}
                   onClick={() =>
                     void runAction('closeInactive', async () => {
-                      const candidates = stats?.inactiveCandidates ?? 0;
-                      if (candidates === 0) return '非アクティブタブはありません';
+                      const candidates = stats?.closeCandidates ?? 0;
+                      if (candidates === 0) return 'クローズ閾値を超えたタブはありません';
                       if (
                         !window.confirm(
-                          `${candidates} 個の非アクティブタブを閉じます。よろしいですか？`,
+                          `クローズ閾値を超えた ${candidates} 個のタブを閉じます。よろしいですか？`,
                         )
                       ) {
                         return 'キャンセルしました';
                       }
                       const r = await sendMessage({ kind: 'closeInactiveNow' });
-                      return `${r.closed} 個の非アクティブタブを閉じました`;
+                      return `${r.closed} 個のタブを閉じました`;
                     })
                   }
                 >
                   <Trash2 className="w-4 h-4" />
-                  非アクティブを今すぐ閉じる
+                  クローズ閾値超のタブを閉じる
                 </Button>
                 <Button
                   variant="secondary"
@@ -194,9 +206,9 @@ export default function App() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value, hint }: { label: string; value: number; hint?: string }) {
   return (
-    <div>
+    <div title={hint}>
       <div className="text-xl font-semibold tabular-nums">{value}</div>
       <div className="text-xs text-muted-foreground">{label}</div>
     </div>

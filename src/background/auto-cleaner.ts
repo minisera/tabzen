@@ -29,6 +29,19 @@ export function exclusionReason(
   return 'none';
 }
 
+/** クローズ閾値を超えていて除外ルールに該当しないタブを返す。 */
+export function selectCloseTargets(
+  metas: TabMeta[],
+  settings: Settings,
+  activeTabIds: Set<number>,
+  now: number,
+): TabMeta[] {
+  const closeMs = settings.closeAfterMinutes * 60_000;
+  return metas.filter(
+    (m) => exclusionReason(m, settings, activeTabIds) === 'none' && now - m.lastActiveAt >= closeMs,
+  );
+}
+
 export async function getActiveTabIds(): Promise<Set<number>> {
   const tabs = await chrome.tabs.query({ active: true });
   const ids = new Set<number>();
@@ -118,11 +131,9 @@ export async function runAutoClean(
 export async function closeInactiveNow(settings: Settings): Promise<number> {
   const map = await getTabMeta();
   const activeIds = await getActiveTabIds();
-  const targets = Object.values(map).filter(
-    (m) => exclusionReason(m, settings, activeIds) === 'none',
-  );
-  if (targets.length === 0) return 0;
   const now = Date.now();
+  const targets = selectCloseTargets(Object.values(map), settings, activeIds, now);
+  if (targets.length === 0) return 0;
   await pushRestoreHistory(
     targets.map((m) => toClosedTab(m, now)),
     settings.restoreHistoryLimit,

@@ -5,7 +5,11 @@ export type TabSwitchItem = TabMeta & { thumbnail?: string };
 
 export interface Stats {
   totalTabs: number;
-  inactiveCandidates: number;
+  /** クローズ閾値を超えている (=「今すぐ閉じる」で対象になる) タブ数 */
+  closeCandidates: number;
+  /** 自動管理対象 (除外ルールに該当しないタブ) の総数 */
+  managedCount: number;
+  /** 既にサスペンド (chrome.tabs.discard) 済みのタブ数 */
   suspendedCount: number;
 }
 

@@ -26,20 +26,20 @@ beforeEach(() => {
 describe('Popup App', () => {
   it('renders header and three quick actions', async () => {
     stubChrome({
-      getStats: { totalTabs: 5, inactiveCandidates: 2, suspendedCount: 1 },
+      getStats: { totalTabs: 5, closeCandidates: 2, managedCount: 4, suspendedCount: 1 },
       listHistory: [],
     });
     const { default: App } = await import('@/popup/App');
     render(<App />);
     expect(await screen.findByText('Tab Tidy')).toBeInTheDocument();
-    expect(await screen.findByText('非アクティブを今すぐ閉じる')).toBeInTheDocument();
+    expect(await screen.findByText('クローズ閾値超のタブを閉じる')).toBeInTheDocument();
     expect(await screen.findByText('重複タブを閉じる')).toBeInTheDocument();
     expect(await screen.findByText('全タブをサスペンド')).toBeInTheDocument();
   });
 
   it('shows aggregate stats', async () => {
     stubChrome({
-      getStats: { totalTabs: 17, inactiveCandidates: 3, suspendedCount: 4 },
+      getStats: { totalTabs: 17, closeCandidates: 3, managedCount: 10, suspendedCount: 4 },
       listHistory: [],
     });
     const { default: App } = await import('@/popup/App');
@@ -51,7 +51,7 @@ describe('Popup App', () => {
 
   it('shows empty message when history is empty', async () => {
     stubChrome({
-      getStats: { totalTabs: 0, inactiveCandidates: 0, suspendedCount: 0 },
+      getStats: { totalTabs: 0, closeCandidates: 0, managedCount: 0, suspendedCount: 0 },
       listHistory: [],
     });
     const { default: App } = await import('@/popup/App');
