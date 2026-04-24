@@ -194,6 +194,23 @@ export function General() {
           />
         </div>
 
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="tabSwitcherMax">タブ切替オーバーレイの表示数</Label>
+            <span className="text-sm tabular-nums">{draft.tabSwitcherMax} 件</span>
+          </div>
+          <Slider
+            id="tabSwitcherMax"
+            min={2}
+            max={10}
+            value={draft.tabSwitcherMax}
+            onChange={(e) => setDraft({ tabSwitcherMax: Number(e.target.value) })}
+          />
+          <p className="text-xs text-muted-foreground">
+            Alt+Q で開くオーバーレイに表示する MRU タブの最大数 (2〜10)。
+          </p>
+        </div>
+
         <hr className="border-border" />
 
         <ThumbCacheSection trigger={thumbTrigger} onCleared={() => setThumbTrigger((n) => n + 1)} />

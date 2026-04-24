@@ -38,7 +38,6 @@ async function confirmInActiveTab(windowId: number, message: string): Promise<bo
   }
 }
 
-const CYCLE_MAX = 5;
 const CYCLE_TIMEOUT_MS = 1500;
 let directCycle: {
   windowId: number;
@@ -95,7 +94,8 @@ async function handleTabSwitchFallback(
     console.debug('[Tab Tidy] Alt+Q: no window');
     return;
   }
-  const ids = (await getMruForWindow(win)).slice(0, CYCLE_MAX);
+  const settings = await getSettings();
+  const ids = (await getMruForWindow(win)).slice(0, settings.tabSwitcherMax);
   console.debug('[Tab Tidy] Alt+Q MRU ids:', ids, 'direction:', direction);
   if (ids.length < 2) return;
 

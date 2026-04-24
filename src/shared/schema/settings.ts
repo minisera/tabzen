@@ -27,6 +27,8 @@ export const settingsSchema = z
     allowlist: z.array(z.string().min(1)).default([]),
     // 復元履歴の保持件数
     restoreHistoryLimit: z.number().int().min(10).max(1000).default(100),
+    // Alt+Q オーバーレイに表示する MRU タブ数
+    tabSwitcherMax: z.number().int().min(2).max(10).default(5),
     normalizeUrl: normalizeUrlOptionsSchema.default({
       stripTrailingSlash: true,
       stripUtm: true,
