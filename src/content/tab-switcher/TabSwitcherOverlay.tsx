@@ -12,8 +12,6 @@ interface State {
 
 const INITIAL: State = { open: false, items: [], selected: 0 };
 const EVENT_TAB_SWITCH = 'tab-tidy:tab-switch';
-/** 修飾キーリリースを取り逃した場合の保険タイムアウト */
-const FALLBACK_COMMIT_MS = 1000;
 
 function safeHost(url: string): string {
   try {
@@ -31,54 +29,44 @@ export function TabSwitcherOverlay() {
   // setState には render 用に最新値を渡し、stateRef は handler 内で
   // 直接書き換えることで両者の食い違いを防ぐ。
   const stateRef = useRef<State>(INITIAL);
-  const timerRef = useRef<number | null>(null);
 
   const applyState = useCallback((next: State) => {
     stateRef.current = next;
     setState(next);
   }, []);
 
-  const clearTimer = useCallback(() => {
-    if (timerRef.current !== null) {
-      window.clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  }, []);
-
-  const scheduleFallbackCommit = useCallback(() => {
-    clearTimer();
-    timerRef.current = window.setTimeout(() => {
-      timerRef.current = null;
-      const cur = stateRef.current;
-      if (!cur.open) return;
-      const target = cur.items[cur.selected];
-      if (target) sendMessageVoid({ kind: 'switchToTab', tabId: target.tabId });
-      applyState(INITIAL);
-    }, FALLBACK_COMMIT_MS);
-  }, [clearTimer, applyState]);
-
   const close = useCallback(() => {
-    clearTimer();
     applyState(INITIAL);
-  }, [clearTimer, applyState]);
+  }, [applyState]);
 
   const commitTabId = useCallback(
     (tabId: number) => {
-      clearTimer();
       applyState(INITIAL);
       sendMessageVoid({ kind: 'switchToTab', tabId });
     },
-    [clearTimer, applyState],
+    [applyState],
   );
 
   const commitCurrent = useCallback(() => {
-    clearTimer();
     const cur = stateRef.current;
     if (!cur.open) return;
     const target = cur.items[cur.selected];
     if (target) sendMessageVoid({ kind: 'switchToTab', tabId: target.tabId });
     applyState(INITIAL);
-  }, [clearTimer, applyState]);
+  }, [applyState]);
+
+  const moveBy = useCallback(
+    (direction: 'next' | 'prev') => {
+      const cur = stateRef.current;
+      if (!cur.open) return;
+      const total = cur.items.length;
+      if (total === 0) return;
+      const delta = direction === 'next' ? 1 : -1;
+      const sel = (cur.selected + delta + total) % total;
+      applyState({ ...cur, selected: sel });
+    },
+    [applyState],
+  );
 
   useEffect(() => {
     console.log('[Tab Tidy][Overlay] useEffect setup: registering listeners');
@@ -113,7 +101,6 @@ export function TabSwitcherOverlay() {
         console.log('[Tab Tidy][Overlay] overlay move', prev.selected, '→', sel);
         applyState({ ...prev, selected: sel });
       }
-      scheduleFallbackCommit();
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -127,6 +114,20 @@ export function TabSwitcherOverlay() {
         e.preventDefault();
         e.stopPropagation();
         commitCurrent();
+      } else if (e.key === 'q' || e.key === 'Q') {
+        // オーバーレイ表示中は修飾キー有無に関わらず Q で移動。
+        // Shift で逆方向。Alt+Shift+Q が Mac で動かないケースの保険。
+        e.preventDefault();
+        e.stopPropagation();
+        moveBy(e.shiftKey ? 'prev' : 'next');
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        e.stopPropagation();
+        moveBy('next');
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        e.stopPropagation();
+        moveBy('prev');
       }
     };
 
@@ -163,9 +164,8 @@ export function TabSwitcherOverlay() {
       document.removeEventListener('keydown', onKeyDown, true);
       document.removeEventListener('keyup', onKeyUp, true);
       window.removeEventListener('blur', onBlur);
-      clearTimer();
     };
-  }, [close, clearTimer, commitCurrent, scheduleFallbackCommit, applyState]);
+  }, [close, commitCurrent, moveBy, applyState]);
 
   if (!state.open) return null;
 
