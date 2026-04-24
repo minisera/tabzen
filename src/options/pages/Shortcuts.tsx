@@ -13,7 +13,13 @@ export function Shortcuts() {
   const [commands, setCommands] = useState<Command[]>([]);
 
   useEffect(() => {
-    chrome.commands.getAll().then(setCommands).catch(console.error);
+    chrome.commands
+      .getAll()
+      // _execute_action などアンダースコア始まりの予約コマンドは Chrome が
+      // 自動生成するもの (ツールバーアイコンのキー起動等) で、ユーザーが
+      // 通常編集しないため非表示にする。
+      .then((list) => setCommands(list.filter((c) => !c.name?.startsWith('_'))))
+      .catch(console.error);
   }, []);
 
   const openShortcutsPage = () => {
