@@ -9,11 +9,7 @@ const HOST_ID = 'tab-tidy-root';
 const EVENT_TAB_SWITCH = 'tab-tidy:tab-switch';
 
 function mount() {
-  if (document.getElementById(HOST_ID)) {
-    console.log('[Tab Tidy][CS] mount: already mounted, skipping');
-    return;
-  }
-  console.log('[Tab Tidy][CS] mount: starting');
+  if (document.getElementById(HOST_ID)) return;
 
   const host = document.createElement('div');
   host.id = HOST_ID;
@@ -38,7 +34,6 @@ function mount() {
       <TabSwitcherOverlay />
     </StrictMode>,
   );
-  console.log('[Tab Tidy][CS] mount: done');
 }
 
 function isContentRequest(v: unknown): v is ContentRequest {
@@ -48,30 +43,18 @@ function isContentRequest(v: unknown): v is ContentRequest {
 }
 
 chrome.runtime.onMessage.addListener((raw, _sender, sendResponse) => {
-  console.log('[Tab Tidy][CS] onMessage received:', raw);
-  if (!isContentRequest(raw)) {
-    console.log('[Tab Tidy][CS] onMessage: not a ContentRequest, ignoring');
-    return false;
-  }
+  if (!isContentRequest(raw)) return false;
   if (raw.kind === 'confirm') {
     const ok = window.confirm(raw.message);
     sendResponse({ ok });
     return false;
   }
   if (raw.kind === 'tabSwitchCycle') {
-    console.log(
-      '[Tab Tidy][CS] tabSwitchCycle',
-      raw.direction,
-      'with',
-      raw.items.length,
-      'items — dispatching CustomEvent',
-    );
     window.dispatchEvent(
       new CustomEvent(EVENT_TAB_SWITCH, {
         detail: { items: raw.items, direction: raw.direction },
       }),
     );
-    console.log('[Tab Tidy][CS] CustomEvent dispatched');
     sendResponse({ ok: true });
     return false;
   }
