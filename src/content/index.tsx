@@ -64,12 +64,6 @@ if (w[INIT_FLAG]) {
       return false;
     }
     if (raw.kind === 'tabSwitchCycle') {
-      console.log(
-        '[Tab Zen][CS] tabSwitchCycle received',
-        raw.direction,
-        raw.items.length,
-        'items',
-      );
       window.dispatchEvent(
         new CustomEvent(EVENT_TAB_SWITCH, {
           detail: { items: raw.items, direction: raw.direction },
