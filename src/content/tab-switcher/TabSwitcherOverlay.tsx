@@ -25,18 +25,17 @@ function safeHost(url: string): string {
 
 export function TabSwitcherOverlay() {
   const [state, setState] = useState<State>(INITIAL);
-  // state を setState 実行時に同期的に反映する ref。
-  // keyup / CustomEvent ハンドラから最新値を参照するのに使う
-  // (useEffect 経由だと1レンダー遅れて race condition が起きる)。
+  // stateRef は handler 内で同期更新する。React の自動バッチングで
+  // setState の updater 実行が遅延されると、その間に到着する次の
+  // メッセージが古い state を参照してしまう (race condition)。
+  // setState には render 用に最新値を渡し、stateRef は handler 内で
+  // 直接書き換えることで両者の食い違いを防ぐ。
   const stateRef = useRef<State>(INITIAL);
   const timerRef = useRef<number | null>(null);
 
-  const updateState = useCallback((updater: (prev: State) => State) => {
-    setState((prev) => {
-      const next = updater(prev);
-      stateRef.current = next;
-      return next;
-    });
+  const applyState = useCallback((next: State) => {
+    stateRef.current = next;
+    setState(next);
   }, []);
 
   const clearTimer = useCallback(() => {
@@ -54,22 +53,22 @@ export function TabSwitcherOverlay() {
       if (!cur.open) return;
       const target = cur.items[cur.selected];
       if (target) sendMessageVoid({ kind: 'switchToTab', tabId: target.tabId });
-      updateState(() => INITIAL);
+      applyState(INITIAL);
     }, FALLBACK_COMMIT_MS);
-  }, [clearTimer, updateState]);
+  }, [clearTimer, applyState]);
 
   const close = useCallback(() => {
     clearTimer();
-    updateState(() => INITIAL);
-  }, [clearTimer, updateState]);
+    applyState(INITIAL);
+  }, [clearTimer, applyState]);
 
   const commitTabId = useCallback(
     (tabId: number) => {
       clearTimer();
-      updateState(() => INITIAL);
+      applyState(INITIAL);
       sendMessageVoid({ kind: 'switchToTab', tabId });
     },
-    [clearTimer, updateState],
+    [clearTimer, applyState],
   );
 
   const commitCurrent = useCallback(() => {
@@ -78,8 +77,8 @@ export function TabSwitcherOverlay() {
     if (!cur.open) return;
     const target = cur.items[cur.selected];
     if (target) sendMessageVoid({ kind: 'switchToTab', tabId: target.tabId });
-    updateState(() => INITIAL);
-  }, [clearTimer, updateState]);
+    applyState(INITIAL);
+  }, [clearTimer, applyState]);
 
   useEffect(() => {
     console.log('[Tab Tidy][Overlay] useEffect setup: registering listeners');
@@ -97,23 +96,23 @@ export function TabSwitcherOverlay() {
         stateRef.current.open,
       );
 
-      updateState((prev) => {
-        if (!prev.open) {
-          if (incoming.length < 2) {
-            console.log('[Tab Tidy][Overlay] onTick: not opening (items < 2)');
-            return prev;
-          }
-          const selected = direction === 'next' ? 1 : incoming.length - 1;
-          console.log('[Tab Tidy][Overlay] overlay open', { direction, selected });
-          return { open: true, items: incoming, selected };
+      const prev = stateRef.current;
+      if (!prev.open) {
+        if (incoming.length < 2) {
+          console.log('[Tab Tidy][Overlay] onTick: not opening (items < 2)');
+          return;
         }
+        const selected = direction === 'next' ? 1 : incoming.length - 1;
+        console.log('[Tab Tidy][Overlay] overlay open', { direction, selected });
+        applyState({ open: true, items: incoming, selected });
+      } else {
         const total = prev.items.length;
-        if (total === 0) return prev;
+        if (total === 0) return;
         const delta = direction === 'next' ? 1 : -1;
-        const next = (prev.selected + delta + total) % total;
-        console.log('[Tab Tidy][Overlay] overlay move', prev.selected, '→', next);
-        return { ...prev, selected: next };
-      });
+        const sel = (prev.selected + delta + total) % total;
+        console.log('[Tab Tidy][Overlay] overlay move', prev.selected, '→', sel);
+        applyState({ ...prev, selected: sel });
+      }
       scheduleFallbackCommit();
     };
 
@@ -166,7 +165,7 @@ export function TabSwitcherOverlay() {
       window.removeEventListener('blur', onBlur);
       clearTimer();
     };
-  }, [close, clearTimer, commitCurrent, scheduleFallbackCommit, updateState]);
+  }, [close, clearTimer, commitCurrent, scheduleFallbackCommit, applyState]);
 
   if (!state.open) return null;
 
@@ -202,7 +201,10 @@ export function TabSwitcherOverlay() {
                   idx === state.selected ? 'bg-accent' : 'hover:bg-accent/50',
                 )}
                 onClick={() => commitTabId(item.tabId)}
-                onMouseEnter={() => updateState((s) => (s.open ? { ...s, selected: idx } : s))}
+                onMouseEnter={() => {
+                  const cur = stateRef.current;
+                  if (cur.open) applyState({ ...cur, selected: idx });
+                }}
               >
                 {item.thumbnail ? (
                   <div className="relative w-[96px] h-[60px] rounded-sm bg-muted shrink-0 overflow-hidden border border-border">
