@@ -178,7 +178,10 @@ export function TabSwitcherOverlay() {
                 type="button"
                 className={cn(
                   'w-full px-4 py-2 flex items-center gap-3 text-left transition-colors',
-                  idx === state.selected ? 'bg-accent' : 'hover:bg-accent/50',
+                  'border-l-4',
+                  idx === state.selected
+                    ? 'bg-primary/15 border-primary'
+                    : 'border-transparent hover:bg-accent/50',
                 )}
                 onClick={() => commitTabId(item.tabId)}
                 onMouseEnter={() => {
