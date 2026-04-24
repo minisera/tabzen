@@ -47,7 +47,7 @@ export default function App() {
         <aside className="w-56 shrink-0">
           <div className="flex items-center gap-2 mb-6">
             <Sparkles className="w-6 h-6 text-primary" />
-            <h1 className="text-lg font-semibold">Tab Tidy</h1>
+            <h1 className="text-lg font-semibold">Tab Zen</h1>
           </div>
           <nav className="flex flex-col gap-1">
             {NAV.map((n) => {

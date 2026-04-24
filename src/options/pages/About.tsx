@@ -6,7 +6,7 @@ export function About() {
     <div className="space-y-6">
       <header>
         <h2 className="text-xl font-semibold mb-1">About</h2>
-        <p className="text-sm text-muted-foreground">Tab Tidy について。</p>
+        <p className="text-sm text-muted-foreground">Tab Zen について。</p>
       </header>
       <Card className="p-5 space-y-3 text-sm">
         <div>

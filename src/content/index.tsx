@@ -5,8 +5,8 @@ import { initFormDetector } from './form-detector';
 import cssText from '@/shared/styles/globals.css?inline';
 import type { ContentRequest } from '@/shared/types';
 
-const HOST_ID = 'tab-tidy-root';
-const EVENT_TAB_SWITCH = 'tab-tidy:tab-switch';
+const HOST_ID = 'tabzen-root';
+const EVENT_TAB_SWITCH = 'tabzen:tab-switch';
 
 function mount() {
   if (document.getElementById(HOST_ID)) return;
@@ -68,4 +68,4 @@ mount();
 
 initFormDetector();
 
-console.log('[Tab Tidy] Content Script initialized on', location.href);
+console.log('[Tab Zen] Content Script initialized on', location.href);

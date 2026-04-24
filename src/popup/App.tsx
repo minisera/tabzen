@@ -55,7 +55,7 @@ export default function App() {
       <header className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-primary" />
-          <h1 className="font-semibold">Tab Tidy</h1>
+          <h1 className="font-semibold">Tab Zen</h1>
         </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" aria-label="更新" onClick={() => void refresh()}>

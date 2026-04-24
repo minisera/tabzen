@@ -31,7 +31,7 @@ describe('Popup App', () => {
     });
     const { default: App } = await import('@/popup/App');
     render(<App />);
-    expect(await screen.findByText('Tab Tidy')).toBeInTheDocument();
+    expect(await screen.findByText('Tab Zen')).toBeInTheDocument();
     expect(await screen.findByText('クローズ閾値超のタブを閉じる')).toBeInTheDocument();
     expect(await screen.findByText('重複タブを閉じる')).toBeInTheDocument();
     expect(await screen.findByText('全タブをサスペンド')).toBeInTheDocument();

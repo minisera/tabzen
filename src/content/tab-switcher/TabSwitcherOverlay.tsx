@@ -11,7 +11,7 @@ interface State {
 }
 
 const INITIAL: State = { open: false, items: [], selected: 0 };
-const EVENT_TAB_SWITCH = 'tab-tidy:tab-switch';
+const EVENT_TAB_SWITCH = 'tabzen:tab-switch';
 
 function safeHost(url: string): string {
   try {

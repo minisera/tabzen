@@ -1,5 +1,5 @@
 {
-  "name": "tab-tidy",
+  "name": "tabzen",
   "private": true,
   "version": "0.1.0",
   "description": "時間経過でタブを自動クローズ・サスペンドし、Arc 風 MRU タブ切替を提供する Chrome 拡張",

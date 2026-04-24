@@ -3,7 +3,7 @@ import pkg from '../package.json' with { type: 'json' };
 
 export default defineManifest({
   manifest_version: 3,
-  name: 'Tab Tidy',
+  name: 'Tab Zen',
   description: '時間経過でタブを自動クローズ・サスペンドし、Arc風MRUタブ切替を提供するタブ管理拡張',
   version: pkg.version,
   icons: {

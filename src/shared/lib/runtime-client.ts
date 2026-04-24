@@ -26,6 +26,6 @@ export function sendMessageVoid<K extends RuntimeRequest['kind']>(
   void sendMessage(req).catch((err: unknown) => {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes('Extension context invalidated')) return;
-    console.warn('[Tab Tidy] sendMessage failed:', err);
+    console.warn('[Tab Zen] sendMessage failed:', err);
   });
 }

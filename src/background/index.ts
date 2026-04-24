@@ -8,10 +8,10 @@ import { getTabMeta } from '@/shared/storage/local-state';
 import { expireOldThumbnails, getThumbnails } from '@/shared/storage/thumbnails';
 import type { ContentConfirmResponse, ContentRequest } from '@/shared/types';
 
-const ALARM_SCAN = 'tab-tidy-scan';
+const ALARM_SCAN = 'tabzen-scan';
 const ALARM_PERIOD_MINUTES = 1;
 
-console.log('[Tab Tidy] Service Worker booted');
+console.log('[Tab Zen] Service Worker booted');
 
 async function scheduleScan(): Promise<void> {
   await chrome.alarms.create(ALARM_SCAN, { periodInMinutes: ALARM_PERIOD_MINUTES });
@@ -91,12 +91,12 @@ async function handleTabSwitchFallback(
 ): Promise<void> {
   const win = await resolveWindowId(tab);
   if (typeof win !== 'number') {
-    console.debug('[Tab Tidy] Alt+Q: no window');
+    console.debug('[Tab Zen] Alt+Q: no window');
     return;
   }
   const settings = await getSettings();
   const ids = (await getMruForWindow(win)).slice(0, settings.tabSwitcherMax);
-  console.debug('[Tab Tidy] Alt+Q MRU ids:', ids, 'direction:', direction);
+  console.debug('[Tab Zen] Alt+Q MRU ids:', ids, 'direction:', direction);
   if (ids.length < 2) return;
 
   const map = await getTabMeta();
@@ -117,10 +117,10 @@ async function handleTabSwitchFallback(
         direction,
         items,
       } satisfies ContentRequest);
-      console.debug('[Tab Tidy] Alt+Q: overlay requested on tab', active.id);
+      console.debug('[Tab Zen] Alt+Q: overlay requested on tab', active.id);
       return;
     } catch (err) {
-      console.debug('[Tab Tidy] Alt+Q: content script unreachable, falling back', err);
+      console.debug('[Tab Zen] Alt+Q: content script unreachable, falling back', err);
     }
   }
   await tickDirectCycle(win, ids, direction);
@@ -145,14 +145,14 @@ async function injectContentScriptIntoExistingTabs(): Promise<void> {
           });
         }
       } catch (err) {
-        console.debug('[Tab Tidy] inject skipped', tab.url, err);
+        console.debug('[Tab Zen] inject skipped', tab.url, err);
       }
     }
   }
 }
 
 chrome.runtime.onInstalled.addListener(async (details) => {
-  console.log('[Tab Tidy] onInstalled:', details.reason);
+  console.log('[Tab Zen] onInstalled:', details.reason);
   await bootstrapCurrentTabs();
   await scheduleScan();
   await injectContentScriptIntoExistingTabs();
@@ -168,11 +168,11 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   const settings = await getSettings();
   const result = await runAutoClean(settings);
   if (result.suspended > 0 || result.closed > 0) {
-    console.log('[Tab Tidy] auto clean:', result);
+    console.log('[Tab Zen] auto clean:', result);
   }
   const removed = await expireOldThumbnails();
   if (removed > 0) {
-    console.debug('[Tab Tidy] expired thumbnails:', removed);
+    console.debug('[Tab Zen] expired thumbnails:', removed);
   }
 });
 
@@ -181,25 +181,25 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
   switch (command) {
     case 'close-inactive-now': {
       const n = await closeInactiveNow(settings);
-      console.log(`[Tab Tidy] close-inactive-now: ${n}`);
+      console.log(`[Tab Zen] close-inactive-now: ${n}`);
       return;
     }
     case 'close-duplicates': {
       const groups = await findDuplicates(settings);
       const total = groups.reduce((acc, g) => acc + g.tabs.length - 1, 0);
       if (total === 0) {
-        console.log('[Tab Tidy] close-duplicates: none');
+        console.log('[Tab Zen] close-duplicates: none');
         return;
       }
       const win = await resolveWindowId(tab);
       if (typeof win !== 'number') return;
       const ok = await confirmInActiveTab(win, `${total} 個の重複タブを閉じます。よろしいですか？`);
       if (!ok) {
-        console.log('[Tab Tidy] close-duplicates: cancelled');
+        console.log('[Tab Zen] close-duplicates: cancelled');
         return;
       }
       const n = await closeDuplicates(settings);
-      console.log(`[Tab Tidy] close-duplicates: ${n}`);
+      console.log(`[Tab Zen] close-duplicates: ${n}`);
       return;
     }
     case 'close-all-window': {
@@ -210,11 +210,11 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
         'このウィンドウの全タブ (除外タブを除く) を閉じます。よろしいですか？',
       );
       if (!ok) {
-        console.log('[Tab Tidy] close-all-window: cancelled or no content script');
+        console.log('[Tab Zen] close-all-window: cancelled or no content script');
         return;
       }
       const n = await closeAllInWindow(win, settings);
-      console.log(`[Tab Tidy] close-all-window: ${n}`);
+      console.log(`[Tab Zen] close-all-window: ${n}`);
       return;
     }
     case 'switch-tab-fallback': {
@@ -226,7 +226,7 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
       return;
     }
     default:
-      console.warn('[Tab Tidy] unknown command:', command);
+      console.warn('[Tab Zen] unknown command:', command);
   }
 });
 
