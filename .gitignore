@@ -12,8 +12,10 @@ dist
 dist-ssr
 *.local
 
-# Chrome Web Store 配布用 zip (build 成果物)
+# Chrome Web Store 配布用 zip (build 成果物) および
+# Safari が auto-extract した zip の残骸ディレクトリ
 tabzen-v*.zip
+tabzen-v*/
 
 # Chrome Web Store 公開作業用の個人メモ (公開しない)
 WEBSTORE.md

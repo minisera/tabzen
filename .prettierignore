@@ -3,3 +3,7 @@ dist
 pnpm-lock.yaml
 public/icons
 .husky
+
+# Web Store 配布用 zip および Safari が auto-extract した残骸
+tabzen-v*/
+tabzen-v*.zip

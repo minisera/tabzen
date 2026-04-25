@@ -5,12 +5,15 @@ on:
     tags:
       - 'v*'
 
-permissions:
-  contents: write
+# top-level は最小権限。Release 作成に必要な書き込み権限は job 内で付与する。
+permissions: read-all
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      # GitHub Release 作成に必要 (softprops/action-gh-release)
+      contents: write
 
     steps:
       - name: Checkout
