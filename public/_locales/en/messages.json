@@ -26,5 +26,9 @@
   "cmdSwitchTabFallbackPrev": {
     "message": "MRU tab switcher (previous)",
     "description": "Description for the switch-tab-fallback-prev keyboard command."
+  },
+  "cmdOpenSearchPalette": {
+    "message": "Open cross-tab search palette",
+    "description": "Description for the open-search-palette keyboard command."
   }
 }

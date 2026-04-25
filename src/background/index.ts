@@ -6,7 +6,7 @@ import { closeDuplicates, findDuplicates } from './duplicate-finder';
 import { getMruForWindow } from './mru-stack';
 import { getTabMeta } from '@/shared/storage/local-state';
 import { expireOldThumbnails, getThumbnails } from '@/shared/storage/thumbnails';
-import type { ContentConfirmResponse, ContentRequest } from '@/shared/types';
+import type { ContentConfirmResponse, ContentRequest, TabSwitchItem } from '@/shared/types';
 
 const ALARM_SCAN = 'tabzen-scan';
 const ALARM_PERIOD_MINUTES = 1;
@@ -126,6 +126,30 @@ async function handleTabSwitchFallback(
   await tickDirectCycle(win, ids, direction);
 }
 
+async function handleOpenSearchPalette(tab: chrome.tabs.Tab | undefined): Promise<void> {
+  const map = await getTabMeta();
+  const thumbs = await getThumbnails();
+  const items: TabSwitchItem[] = Object.values(map)
+    .sort((a, b) => b.lastActiveAt - a.lastActiveAt)
+    .map((meta) => ({ ...meta, thumbnail: thumbs[meta.tabId]?.dataUrl }));
+
+  const win = await resolveWindowId(tab);
+  if (typeof win !== 'number') return;
+  const [active] = await chrome.tabs.query({ active: true, windowId: win });
+  if (typeof active?.id !== 'number') {
+    console.debug('[Tab Zen] search palette: no active tab');
+    return;
+  }
+  try {
+    await chrome.tabs.sendMessage(active.id, {
+      kind: 'openSearchPalette',
+      items,
+    } satisfies ContentRequest);
+  } catch (err) {
+    console.debug('[Tab Zen] search palette: content script unreachable', err);
+  }
+}
+
 async function injectContentScriptIntoExistingTabs(): Promise<void> {
   const manifest = chrome.runtime.getManifest();
   const scripts = manifest.content_scripts ?? [];
@@ -223,6 +247,10 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
     }
     case 'switch-tab-fallback-prev': {
       await handleTabSwitchFallback(tab, 'prev');
+      return;
+    }
+    case 'open-search-palette': {
+      await handleOpenSearchPalette(tab);
       return;
     }
     default:

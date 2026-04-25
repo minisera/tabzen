@@ -111,10 +111,29 @@ export function initMessaging(): void {
             sendResponse({ ok: true, data: items });
             return;
           }
-          case 'switchToTab':
-            await chrome.tabs.update(msg.tabId, { active: true });
+          case 'getAllTabs': {
+            const map = await getTabMeta();
+            const thumbs = await getThumbnails();
+            const items = Object.values(map)
+              .sort((a, b) => b.lastActiveAt - a.lastActiveAt)
+              .map((meta) => ({ ...meta, thumbnail: thumbs[meta.tabId]?.dataUrl }));
+            sendResponse({ ok: true, data: items });
+            return;
+          }
+          case 'switchToTab': {
+            const tab = await chrome.tabs.update(msg.tabId, { active: true });
+            // クロスウィンドウ切替時はウィンドウもフォーカスする。
+            // 同一ウィンドウなら no-op に近い。
+            if (typeof tab?.windowId === 'number') {
+              try {
+                await chrome.windows.update(tab.windowId, { focused: true });
+              } catch {
+                // window が閉じている等
+              }
+            }
             sendResponse({ ok: true });
             return;
+          }
           case 'getThumbnailStats':
             sendResponse({ ok: true, data: await getThumbnailStats() });
             return;

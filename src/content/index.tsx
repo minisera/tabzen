@@ -1,12 +1,14 @@
 import { StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { TabSwitcherOverlay } from './tab-switcher/TabSwitcherOverlay';
+import { SearchPalette } from './search-palette/SearchPalette';
 import { initFormDetector } from './form-detector';
 import cssText from '@/shared/styles/globals.css?inline';
 import type { ContentRequest } from '@/shared/types';
 
 const HOST_ID = 'tabzen-root';
 const EVENT_TAB_SWITCH = 'tabzen:tab-switch';
+const EVENT_OPEN_SEARCH = 'tabzen:open-search-palette';
 const CLEANUP_KEY = '__tabzenCleanup';
 
 type Cleanup = () => void;
@@ -38,6 +40,7 @@ function mount(): Cleanup {
   root.render(
     <StrictMode>
       <TabSwitcherOverlay />
+      <SearchPalette />
     </StrictMode>,
   );
 
@@ -54,7 +57,7 @@ function mount(): Cleanup {
 function isContentRequest(v: unknown): v is ContentRequest {
   if (typeof v !== 'object' || v === null) return false;
   const kind = (v as { kind?: unknown }).kind;
-  return kind === 'confirm' || kind === 'tabSwitchCycle';
+  return kind === 'confirm' || kind === 'tabSwitchCycle' || kind === 'openSearchPalette';
 }
 
 // 二重初期化対策。下記 2 ケースを両方ハンドルする必要がある:
@@ -97,6 +100,15 @@ const messageListener = (
     window.dispatchEvent(
       new CustomEvent(EVENT_TAB_SWITCH, {
         detail: { items: raw.items, direction: raw.direction },
+      }),
+    );
+    sendResponse({ ok: true });
+    return false;
+  }
+  if (raw.kind === 'openSearchPalette') {
+    window.dispatchEvent(
+      new CustomEvent(EVENT_OPEN_SEARCH, {
+        detail: { items: raw.items },
       }),
     );
     sendResponse({ ok: true });

@@ -59,8 +59,14 @@ export default defineManifest({
       description: '__MSG_cmdSwitchTabFallback__',
     },
     'switch-tab-fallback-prev': {
-      suggested_key: { default: 'Ctrl+Shift+Q' },
+      // Chrome は suggested_key 付きコマンドを最大 4 個までしか許可しない。
+      // 'switch-tab-fallback' と対だが、一方だけ既定設定とし、こちらは
+      // chrome://extensions/shortcuts でユーザーが手動割り当てする運用にする。
       description: '__MSG_cmdSwitchTabFallbackPrev__',
+    },
+    'open-search-palette': {
+      suggested_key: { default: 'Alt+Shift+P' },
+      description: '__MSG_cmdOpenSearchPalette__',
     },
   },
 });
