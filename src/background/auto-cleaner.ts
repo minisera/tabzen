@@ -6,7 +6,7 @@ import {
   setRestoreHistory,
   setTabMeta,
 } from '@/shared/storage/local-state';
-import { isAllowlisted } from '@/shared/utils/url-normalize';
+import { findDomainRule, isAllowlisted } from '@/shared/utils/url-normalize';
 import { recordDailyStat } from '@/shared/storage/daily-stats';
 
 export type ExclusionReason =
@@ -15,6 +15,7 @@ export type ExclusionReason =
   | 'active'
   | 'formDirty'
   | 'allowlisted'
+  | 'domainRule'
   | 'none';
 
 export function exclusionReason(
@@ -27,7 +28,34 @@ export function exclusionReason(
   if (meta.formDirty) return 'formDirty';
   if (activeTabIds.has(meta.tabId)) return 'active';
   if (isAllowlisted(meta.url, settings.allowlist)) return 'allowlisted';
+  const rule = findDomainRule(meta.url, settings.domainRules);
+  if (rule?.mode === 'neverClose') return 'domainRule';
   return 'none';
+}
+
+/**
+ * このタブに適用する閾値を返す。custom ルールにマッチした場合はそちらを
+ * 優先し、なければグローバル設定を使う。
+ */
+export function thresholdsForTab(
+  meta: TabMeta,
+  settings: Settings,
+): { suspendMs: number; closeMs: number } {
+  const rule = findDomainRule(meta.url, settings.domainRules);
+  if (
+    rule?.mode === 'custom' &&
+    rule.suspendAfterMinutes !== undefined &&
+    rule.closeAfterMinutes !== undefined
+  ) {
+    return {
+      suspendMs: rule.suspendAfterMinutes * 60_000,
+      closeMs: rule.closeAfterMinutes * 60_000,
+    };
+  }
+  return {
+    suspendMs: settings.suspendAfterMinutes * 60_000,
+    closeMs: settings.closeAfterMinutes * 60_000,
+  };
 }
 
 /** クローズ閾値を超えていて除外ルールに該当しないタブを返す。 */
@@ -37,10 +65,11 @@ export function selectCloseTargets(
   activeTabIds: Set<number>,
   now: number,
 ): TabMeta[] {
-  const closeMs = settings.closeAfterMinutes * 60_000;
-  return metas.filter(
-    (m) => exclusionReason(m, settings, activeTabIds) === 'none' && now - m.lastActiveAt >= closeMs,
-  );
+  return metas.filter((m) => {
+    if (exclusionReason(m, settings, activeTabIds) !== 'none') return false;
+    const { closeMs } = thresholdsForTab(m, settings);
+    return now - m.lastActiveAt >= closeMs;
+  });
 }
 
 export async function getActiveTabIds(): Promise<Set<number>> {
@@ -90,8 +119,6 @@ export async function runAutoClean(
   const map = await getTabMeta();
   const activeIds = await getActiveTabIds();
   const now = Date.now();
-  const suspendThresholdMs = settings.suspendAfterMinutes * 60_000;
-  const closeThresholdMs = settings.closeAfterMinutes * 60_000;
 
   const toSuspend: TabMeta[] = [];
   const toClose: TabMeta[] = [];
@@ -99,9 +126,10 @@ export async function runAutoClean(
   for (const meta of Object.values(map)) {
     if (exclusionReason(meta, settings, activeIds) !== 'none') continue;
     const idleMs = now - meta.lastActiveAt;
-    if (idleMs >= closeThresholdMs) {
+    const { suspendMs, closeMs } = thresholdsForTab(meta, settings);
+    if (idleMs >= closeMs) {
       toClose.push(meta);
-    } else if (!meta.suspended && idleMs >= suspendThresholdMs) {
+    } else if (!meta.suspended && idleMs >= suspendMs) {
       toSuspend.push(meta);
     }
   }
