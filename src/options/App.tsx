@@ -2,7 +2,6 @@ import { useEffect, type ComponentType } from 'react';
 import {
   BarChart3,
   Bookmark,
-  Clock,
   Database,
   Globe,
   History as HistoryIcon,
@@ -23,7 +22,6 @@ import { History } from './pages/History';
 import { Statistics } from './pages/Statistics';
 import { Backup } from './pages/Backup';
 import { Sessions } from './pages/Sessions';
-import { Snoozed } from './pages/Snoozed';
 import { About } from './pages/About';
 
 interface NavItem {
@@ -41,7 +39,6 @@ const NAV: NavItem[] = [
   { id: 'history', label: '復元履歴', icon: HistoryIcon, Page: History },
   { id: 'statistics', label: '統計', icon: BarChart3, Page: Statistics },
   { id: 'sessions', label: 'セッション', icon: Bookmark, Page: Sessions },
-  { id: 'snoozed', label: 'Snooze', icon: Clock, Page: Snoozed },
   { id: 'backup', label: 'バックアップ', icon: Database, Page: Backup },
   { id: 'about', label: 'About', icon: Info, Page: About },
 ];

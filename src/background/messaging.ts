@@ -15,7 +15,6 @@ import { getMruForWindow } from './mru-stack';
 import { clearAllThumbnails, getThumbnails, getThumbnailStats } from '@/shared/storage/thumbnails';
 import { clearDailyStats, getDailyStats } from '@/shared/storage/daily-stats';
 import { deleteSession, listSessions, openSession, renameSession, saveSession } from './sessions';
-import { cancelSnooze, listSnoozed, snoozeTab, wakeSnoozeNow } from './snooze';
 
 async function computeStats(): Promise<Stats> {
   const map = await getTabMeta();
@@ -186,33 +185,6 @@ export function initMessaging(): void {
             return;
           case 'renameSession':
             await renameSession(msg.id, msg.name);
-            sendResponse({ ok: true });
-            return;
-          case 'snoozeActiveTab': {
-            const win =
-              sender.tab?.windowId ?? (await chrome.windows.getCurrent().catch(() => null))?.id;
-            if (typeof win !== 'number') {
-              sendResponse({ ok: false, error: 'no current window' });
-              return;
-            }
-            const [active] = await chrome.tabs.query({ active: true, windowId: win });
-            if (typeof active?.id !== 'number') {
-              sendResponse({ ok: false, error: 'no active tab' });
-              return;
-            }
-            const entry = await snoozeTab(active.id, msg.wakeAt);
-            sendResponse({ ok: true, data: entry });
-            return;
-          }
-          case 'listSnoozed':
-            sendResponse({ ok: true, data: await listSnoozed() });
-            return;
-          case 'cancelSnooze':
-            await cancelSnooze(msg.id);
-            sendResponse({ ok: true });
-            return;
-          case 'wakeSnoozeNow':
-            await wakeSnoozeNow(msg.id);
             sendResponse({ ok: true });
             return;
           default: {

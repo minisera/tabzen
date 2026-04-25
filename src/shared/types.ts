@@ -2,7 +2,6 @@ import type { ClosedTab, TabMeta } from '@/shared/schema/tab-meta';
 import type { Settings } from '@/shared/schema/settings';
 import type { DayStat } from '@/shared/schema/daily-stats';
 import type { TabSession } from '@/shared/schema/session';
-import type { SnoozedTab } from '@/shared/schema/snooze';
 
 export type TabSwitchItem = TabMeta & { thumbnail?: string };
 
@@ -45,11 +44,7 @@ export type RuntimeRequest =
   | { kind: 'listSessions' }
   | { kind: 'openSession'; id: string; mode: 'newWindow' | 'currentWindow' }
   | { kind: 'deleteSession'; id: string }
-  | { kind: 'renameSession'; id: string; name: string }
-  | { kind: 'snoozeActiveTab'; wakeAt: number }
-  | { kind: 'listSnoozed' }
-  | { kind: 'cancelSnooze'; id: string }
-  | { kind: 'wakeSnoozeNow'; id: string };
+  | { kind: 'renameSession'; id: string; name: string };
 
 export type RuntimeResponse<T = unknown> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -95,8 +90,4 @@ export type RuntimeResponseMap = {
   openSession: { opened: number };
   deleteSession: void;
   renameSession: void;
-  snoozeActiveTab: SnoozedTab;
-  listSnoozed: SnoozedTab[];
-  cancelSnooze: void;
-  wakeSnoozeNow: void;
 };
