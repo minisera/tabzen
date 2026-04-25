@@ -3,8 +3,10 @@ import pkg from '../package.json' with { type: 'json' };
 
 export default defineManifest({
   manifest_version: 3,
-  name: 'Tab Zen',
-  description: '時間経過でタブを自動クローズ・サスペンドし、Arc風MRUタブ切替を提供するタブ管理拡張',
+  // i18n: see public/_locales/{en,ja}/messages.json
+  name: '__MSG_extName__',
+  description: '__MSG_extDescription__',
+  default_locale: 'en',
   version: pkg.version,
   homepage_url: 'https://minisera.hatenablog.com/',
   icons: {
@@ -38,23 +40,22 @@ export default defineManifest({
   commands: {
     'close-inactive-now': {
       suggested_key: { default: 'Alt+Shift+X' },
-      description: '閾値超えの非アクティブタブを今すぐクローズ',
+      description: '__MSG_cmdCloseInactiveNow__',
     },
     'close-duplicates': {
       suggested_key: { default: 'Alt+Shift+D' },
-      description: '重複タブをクローズ',
+      description: '__MSG_cmdCloseDuplicates__',
     },
     'close-all-window': {
-      description:
-        '現在のウィンドウの全タブをクローズ (危険なためデフォルトキー未設定。chrome://extensions/shortcuts で割り当て)',
+      description: '__MSG_cmdCloseAllWindow__',
     },
     'switch-tab-fallback': {
       suggested_key: { default: 'Ctrl+Q' },
-      description: 'MRU タブ切替 (次へ)',
+      description: '__MSG_cmdSwitchTabFallback__',
     },
     'switch-tab-fallback-prev': {
       suggested_key: { default: 'Ctrl+Shift+Q' },
-      description: 'MRU タブ切替 (前へ)',
+      description: '__MSG_cmdSwitchTabFallbackPrev__',
     },
   },
 });

@@ -1,0 +1,30 @@
+{
+  "extName": {
+    "message": "Tab Zen",
+    "description": "Extension name shown in Chrome and Web Store."
+  },
+  "extDescription": {
+    "message": "Auto-close and suspend idle tabs, and switch between recent tabs with an Arc-style MRU overlay.",
+    "description": "Short description shown in Chrome and Web Store (under 132 chars)."
+  },
+  "cmdCloseInactiveNow": {
+    "message": "Close inactive tabs that exceed the threshold right now",
+    "description": "Description for the close-inactive-now keyboard command."
+  },
+  "cmdCloseDuplicates": {
+    "message": "Close duplicate tabs",
+    "description": "Description for the close-duplicates keyboard command."
+  },
+  "cmdCloseAllWindow": {
+    "message": "Close all tabs in the current window (no default key — assign one in chrome://extensions/shortcuts)",
+    "description": "Description for the close-all-window keyboard command."
+  },
+  "cmdSwitchTabFallback": {
+    "message": "MRU tab switcher (next)",
+    "description": "Description for the switch-tab-fallback keyboard command."
+  },
+  "cmdSwitchTabFallbackPrev": {
+    "message": "MRU tab switcher (previous)",
+    "description": "Description for the switch-tab-fallback-prev keyboard command."
+  }
+}

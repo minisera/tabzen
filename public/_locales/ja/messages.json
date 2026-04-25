@@ -1,0 +1,30 @@
+{
+  "extName": {
+    "message": "Tab Zen",
+    "description": "Chrome と Web Store に表示される拡張機能名。"
+  },
+  "extDescription": {
+    "message": "時間経過でタブを自動クローズ・サスペンドし、Arc 風 MRU タブ切替を提供するタブ管理拡張",
+    "description": "Chrome と Web Store に表示される短い説明 (132 字以内)。"
+  },
+  "cmdCloseInactiveNow": {
+    "message": "閾値超えの非アクティブタブを今すぐクローズ",
+    "description": "close-inactive-now コマンドの説明。"
+  },
+  "cmdCloseDuplicates": {
+    "message": "重複タブをクローズ",
+    "description": "close-duplicates コマンドの説明。"
+  },
+  "cmdCloseAllWindow": {
+    "message": "現在のウィンドウの全タブをクローズ (危険なためデフォルトキー未設定。chrome://extensions/shortcuts で割り当て)",
+    "description": "close-all-window コマンドの説明。"
+  },
+  "cmdSwitchTabFallback": {
+    "message": "MRU タブ切替 (次へ)",
+    "description": "switch-tab-fallback コマンドの説明。"
+  },
+  "cmdSwitchTabFallbackPrev": {
+    "message": "MRU タブ切替 (前へ)",
+    "description": "switch-tab-fallback-prev コマンドの説明。"
+  }
+}
