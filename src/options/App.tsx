@@ -4,6 +4,7 @@ import {
   Bookmark,
   Clock,
   Database,
+  Globe,
   History as HistoryIcon,
   Info,
   Keyboard,
@@ -16,6 +17,7 @@ import { useHashRoute } from '@/shared/hooks/useHashRoute';
 import { useSettingsStore } from '@/shared/stores/settings-store';
 import { General } from './pages/General';
 import { Allowlist } from './pages/Allowlist';
+import { DomainRules } from './pages/DomainRules';
 import { Shortcuts } from './pages/Shortcuts';
 import { History } from './pages/History';
 import { Statistics } from './pages/Statistics';
@@ -34,6 +36,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { id: 'general', label: '一般', icon: Sliders, Page: General },
   { id: 'allowlist', label: '除外ドメイン', icon: ShieldCheck, Page: Allowlist },
+  { id: 'domain-rules', label: 'ドメインルール', icon: Globe, Page: DomainRules },
   { id: 'shortcuts', label: 'ショートカット', icon: Keyboard, Page: Shortcuts },
   { id: 'history', label: '復元履歴', icon: HistoryIcon, Page: History },
   { id: 'statistics', label: '統計', icon: BarChart3, Page: Statistics },
