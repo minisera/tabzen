@@ -9,13 +9,8 @@ on:
     # 毎週月曜 04:00 UTC (= 13:00 JST) にフルスキャン
     - cron: '0 4 * * 1'
 
-# 最小権限のみ付与
-permissions:
-  contents: read
-  # Security タブに結果を upload するため
-  security-events: write
-  # private repo の場合に必要 (public でも害なし)
-  actions: read
+# top-level は最小権限。SARIF upload に必要な書き込み権限は job 内で付与する。
+permissions: read-all
 
 concurrency:
   group: codeql-${{ github.workflow }}-${{ github.ref }}
@@ -26,6 +21,12 @@ jobs:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      # Security タブに結果を upload するため
+      security-events: write
+      # private repo の場合に必要 (public でも害なし)
+      actions: read
 
     strategy:
       fail-fast: false

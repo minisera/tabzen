@@ -7,13 +7,25 @@ const lastCaptureAtByWindow = new Map<number, number>();
 
 function canCaptureUrl(url: string | undefined): boolean {
   if (!url) return false;
+  // Chrome の特殊 URL は protocol prefix で判定 (これらは host 概念がない)
   if (url.startsWith('chrome://')) return false;
   if (url.startsWith('chrome-extension://')) return false;
   if (url.startsWith('devtools://')) return false;
   if (url.startsWith('about:')) return false;
   if (url.startsWith('view-source:')) return false;
-  if (url.startsWith('https://chrome.google.com/webstore')) return false;
-  if (url.startsWith('https://chromewebstore.google.com')) return false;
+  // Web Store はホスト名で厳密判定する。url.startsWith('https://...') 形式だと
+  // 'https://chromewebstore.google.com.evil.com' のような host 偽装で bypass
+  // できてしまう (CodeQL: js/incomplete-url-substring-sanitization)。
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.hostname === 'chromewebstore.google.com') return false;
+  if (parsed.hostname === 'chrome.google.com' && parsed.pathname.startsWith('/webstore')) {
+    return false;
+  }
   return true;
 }
 
