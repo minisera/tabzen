@@ -17,6 +17,11 @@ export default defineManifest({
   },
   permissions: ['tabs', 'alarms', 'storage', 'scripting'],
   host_permissions: ['<all_urls>'],
+  // MV3 default と同等だが、明示することで eval/inline-script 等を一切
+  // 許容しないことを宣言する (XSS / リモートコード実行への防御層)
+  content_security_policy: {
+    extension_pages: "script-src 'self'; object-src 'self'",
+  },
   background: {
     service_worker: 'src/background/index.ts',
     type: 'module',
