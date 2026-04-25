@@ -73,6 +73,10 @@ export function SearchPalette() {
   if (!state.open) return null;
 
   const onKeyDown = (e: React.KeyboardEvent) => {
+    // IME 変換中 (全角入力で未確定) のキーは無視する。Enter で IME 確定した
+    // つもりがそのまま選択中タブを開いてしまうのを防ぐ。Safari など一部
+    // 環境で isComposing が立たない場合に備えて keyCode 229 もチェック。
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === 'Escape') {
       e.preventDefault();
       close();
