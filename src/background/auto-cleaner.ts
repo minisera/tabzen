@@ -7,6 +7,7 @@ import {
   setTabMeta,
 } from '@/shared/storage/local-state';
 import { isAllowlisted } from '@/shared/utils/url-normalize';
+import { recordDailyStat } from '@/shared/storage/daily-stats';
 
 export type ExclusionReason =
   | 'pinned'
@@ -110,22 +111,26 @@ export async function runAutoClean(
       toClose.map((m) => toClosedTab(m, now)),
       settings.restoreHistoryLimit,
     );
-    await removeTabs(toClose.map((m) => m.tabId));
+    const closed = await removeTabs(toClose.map((m) => m.tabId));
     for (const m of toClose) delete map[m.tabId];
+    await recordDailyStat('autoClosed', closed);
   }
 
+  let suspendedCount = 0;
   for (const m of toSuspend) {
     try {
       await chrome.tabs.discard(m.tabId);
       m.suspended = true;
       map[m.tabId] = m;
+      suspendedCount++;
     } catch {
       // active tab や discard 不可
     }
   }
+  if (suspendedCount > 0) await recordDailyStat('suspended', suspendedCount);
 
   await setTabMeta(map);
-  return { suspended: toSuspend.length, closed: toClose.length };
+  return { suspended: suspendedCount, closed: toClose.length };
 }
 
 export async function closeInactiveNow(settings: Settings): Promise<number> {
@@ -138,9 +143,10 @@ export async function closeInactiveNow(settings: Settings): Promise<number> {
     targets.map((m) => toClosedTab(m, now)),
     settings.restoreHistoryLimit,
   );
-  await removeTabs(targets.map((m) => m.tabId));
+  const closed = await removeTabs(targets.map((m) => m.tabId));
   for (const m of targets) delete map[m.tabId];
   await setTabMeta(map);
+  await recordDailyStat('manualClosed', closed);
   return targets.length;
 }
 
@@ -160,7 +166,10 @@ export async function suspendAll(settings: Settings): Promise<number> {
       // ignore
     }
   }
-  if (count > 0) await setTabMeta(map);
+  if (count > 0) {
+    await setTabMeta(map);
+    await recordDailyStat('suspended', count);
+  }
   return count;
 }
 
@@ -176,8 +185,9 @@ export async function closeAllInWindow(windowId: number, settings: Settings): Pr
     targets.map((m) => toClosedTab(m, now)),
     settings.restoreHistoryLimit,
   );
-  await removeTabs(targets.map((m) => m.tabId));
+  const closed = await removeTabs(targets.map((m) => m.tabId));
   for (const m of targets) delete map[m.tabId];
   await setTabMeta(map);
+  await recordDailyStat('manualClosed', closed);
   return targets.length;
 }
