@@ -1,6 +1,6 @@
 import type { RuntimeRequest } from '@/shared/types';
 
-export function initFormDetector(): void {
+export function initFormDetector(): () => void {
   let dirty = false;
 
   const setDirty = (d: boolean) => {
@@ -36,8 +36,16 @@ export function initFormDetector(): void {
       setDirty(true);
     }
   };
+  const onSubmit = () => setDirty(false);
+  const onBeforeUnload = () => setDirty(false);
 
   document.addEventListener('input', onInput, true);
-  document.addEventListener('submit', () => setDirty(false), true);
-  window.addEventListener('beforeunload', () => setDirty(false));
+  document.addEventListener('submit', onSubmit, true);
+  window.addEventListener('beforeunload', onBeforeUnload);
+
+  return () => {
+    document.removeEventListener('input', onInput, true);
+    document.removeEventListener('submit', onSubmit, true);
+    window.removeEventListener('beforeunload', onBeforeUnload);
+  };
 }
