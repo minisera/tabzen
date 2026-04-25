@@ -1,4 +1,4 @@
-import type { NormalizeUrlOptions } from '@/shared/schema/settings';
+import type { DomainRule, NormalizeUrlOptions } from '@/shared/schema/settings';
 
 export function normalizeUrl(raw: string, opts: NormalizeUrlOptions): string {
   try {
@@ -37,4 +37,19 @@ export function isAllowlisted(url: string, patterns: string[]): boolean {
   } catch {
     return false;
   }
+}
+
+/** URL に最初にマッチした domainRule を返す。マッチしなければ null。 */
+export function findDomainRule(url: string, rules: DomainRule[]): DomainRule | null {
+  if (rules.length === 0) return null;
+  let host: string;
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    return null;
+  }
+  for (const r of rules) {
+    if (matchDomain(host, r.pattern)) return r;
+  }
+  return null;
 }
