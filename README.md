@@ -1,90 +1,92 @@
 # Tab Zen
 
-増えすぎたタブを時間経過で静かに整理し、Arc 風の最近使った順 (MRU) でタブを切り替える Chrome 拡張機能。
+[日本語版 →](./README.ja.md)
+
+A Chrome extension that quietly tidies up your tab clutter over time and provides an Arc-style most-recently-used (MRU) tab switcher.
 
 ---
 
-## できること
+## What it does
 
-- **タブを自動で閉じる** — 最終アクティブから一定時間経過したタブを自動でクローズ。閾値は **分 / 時間 / 日** の単位で柔軟に指定可能 (最大 30 日)
-- **2 段階のサスペンド → クローズ** — 先に `chrome.tabs.discard()` でメモリだけ解放してタブの UI は残し、さらに時間が経つと完全クローズ。再アクセス時はリロードされる
-- **Alt+Q で「最近使ったタブ」に即切替** — 中央オーバーレイにサムネイル付きでタブ一覧が出て、Alt 押しっぱなしで Q を連打 → リリースで確定。Mac の Option+Q にも対応
-- **閉じたタブの復元履歴** — 自動クローズされたタブはワンクリックで再オープン。ブラウザ再起動を越えて残る (デフォルト 100 件、件数は変更可)
-- **除外ルール** — ピン留め / 音声再生中 / 現在アクティブ / 未送信フォームのあるタブ / ホワイトリストに登録したドメインは自動整理の対象外
-- **重複タブの検出・クローズ** — URL を正規化 (UTM パラメータ・末尾スラッシュ等) して同じページを開いている重複タブを検出し、最新のものだけ残して閉じる
-- **危険操作の確認ダイアログ** — 一括クローズや重複クローズは件数つきの確認を挟む
+- **Auto-close inactive tabs** — Tabs are closed automatically once they exceed your configured idle threshold. Set the threshold in **minutes / hours / days** (up to 30 days).
+- **Two-stage suspend → close** — Tabs are first discarded with `chrome.tabs.discard()` to free memory while keeping the UI; after a longer threshold they are fully closed.
+- **Switch to recent tabs with Alt+Q** — A centered overlay with thumbnails appears; hold Alt and tap Q repeatedly to step through, release Alt to confirm. Works as Option+Q on macOS.
+- **Restore history** — Auto-closed tabs can be reopened with one click. Persists across browser restarts (default 100 entries, configurable).
+- **Smart exclusions** — Pinned tabs, audible tabs, the active tab, tabs with unsaved form input, and any domain on your allowlist are automatically excluded.
+- **Duplicate detection** — Normalizes URLs (UTM stripping, trailing slash, fragments) to find duplicate tabs and closes all but the most recent.
+- **Confirmations on destructive actions** — Bulk close and duplicate close show a count and a confirmation dialog.
 
 ---
 
-## インストール
+## Install
 
 ### Chrome Web Store
 
-(準備中)
+(coming soon)
 
-### 開発者モードで読み込む
+### Load unpacked (developer mode)
 
-1. このリポジトリの [Releases](https://github.com/minisera/tabzen/releases) から `tabzen-vX.Y.Z.zip` をダウンロードし、任意の場所に展開
-2. Chrome で `chrome://extensions/` を開く
-3. 右上の **「デベロッパーモード」** を ON
-4. **「パッケージ化されていない拡張機能を読み込む」** をクリックし、展開したフォルダを選択
-5. ツールバーのパズルピース → ピン留めで Tab Zen を常時表示
-
----
-
-## 使い方
-
-### キーボードショートカット
-
-| ショートカット              | 動作                                                                                           |
-| --------------------------- | ---------------------------------------------------------------------------------------------- |
-| **Alt+Q** (Mac は Option+Q) | MRU タブ切替オーバーレイを表示。押しっぱなしで連打すると下に移動、リリースで選択中のタブに切替 |
-| **Alt+Shift+Q**             | オーバーレイ表示中、逆方向 (上) に移動                                                         |
-| **Alt+Shift+X**             | クローズ閾値を超えているタブを今すぐ閉じる                                                     |
-| **Alt+Shift+D**             | 重複タブを検出してまとめて閉じる (確認ダイアログあり)                                          |
-| `Esc`                       | オーバーレイをキャンセル (タブ切替なし)                                                        |
-| `Enter` / クリック          | オーバーレイで選択中のタブに切替                                                               |
-| `↑` `↓` `←` `→`             | オーバーレイ内の選択を移動 (Q キーの代わり)                                                    |
-
-> Ctrl+Tab は Chrome のブラウザ予約キーで拡張機能から横取りできない仕様のため、Tab Zen は **Alt+Q** を採用しています。`chrome://extensions/shortcuts` から好みのキーへ再割り当て可能です。
-
-### Popup (ツールバーアイコンクリック)
-
-- **統計サマリ**: 開いているタブ数 / クローズ閾値超過数 / サスペンド済タブ数
-- **クイックアクション**: 「クローズ閾値超のタブを閉じる」「重複タブを閉じる」「全タブをサスペンド」
-- **最近閉じたタブ 5 件**: クリックで新規タブとして復元
-
-### 詳細設定 (Options)
-
-ツールバーアイコン右クリック → **オプション** で以下を設定:
-
-- **一般**: 自動処理の ON/OFF、サスペンド/クローズ閾値 (分/時間/日)、復元履歴の保持件数、Alt+Q オーバーレイの表示数 (2〜10)、サムネイルキャッシュのクリア
-- **除外ドメイン**: ホワイトリスト登録 (`github.com` や `*.notion.so` などワイルドカード対応)
-- **ショートカット**: 現在のキーバインド一覧 + `chrome://extensions/shortcuts` への導線
-- **復元履歴**: 全履歴の検索・個別復元・一括クリア
+1. Download `tabzen-vX.Y.Z.zip` from the [Releases](https://github.com/minisera/tabzen/releases) page and extract it
+2. Open `chrome://extensions/`
+3. Enable **Developer mode** (top right)
+4. Click **Load unpacked** and select the extracted folder
+5. Pin Tab Zen from the puzzle-piece menu so it stays on the toolbar
 
 ---
 
-## プライバシー
+## How to use
 
-Tab Zen は **個人情報を一切収集・送信しません**。すべてのデータは `chrome.storage` に保存され、ネットワーク通信は行いません。詳細は [PRIVACY.md](./PRIVACY.md) を参照してください。
+### Keyboard shortcuts
+
+| Shortcut                      | Action                                                                                  |
+| ----------------------------- | --------------------------------------------------------------------------------------- |
+| **Alt+Q** (Option+Q on macOS) | Open the MRU switcher overlay. Hold Alt and tap Q to move down; release Alt to confirm. |
+| **Alt+Shift+Q**               | Move up (reverse direction) in the overlay.                                             |
+| **Alt+Shift+X**               | Close all tabs that exceed the close threshold right now.                               |
+| **Alt+Shift+D**               | Detect and close duplicate tabs (with confirmation).                                    |
+| `Esc`                         | Cancel the overlay (no tab switch).                                                     |
+| `Enter` / click               | Switch to the highlighted tab.                                                          |
+| `↑` `↓` `←` `→`               | Move the selection in the overlay (alternative to Q).                                   |
+
+> Ctrl+Tab is reserved by Chrome for built-in browser navigation and cannot be intercepted by extensions, so Tab Zen uses **Alt+Q** by default. You can rebind any shortcut from `chrome://extensions/shortcuts`.
+
+### Popup (toolbar icon)
+
+- **Stats**: total tabs / close candidates / suspended count
+- **Quick actions**: close threshold-exceeding tabs, close duplicates, suspend all
+- **Recently closed (5)**: click to restore as a new tab
+
+### Options page
+
+Right-click the toolbar icon → **Options** to configure:
+
+- **General**: enable/disable auto-processing, suspend / close thresholds (minutes / hours / days), restore-history limit, MRU overlay size (2–10), thumbnail cache management
+- **Allowlist**: domains excluded from auto-management (e.g. `github.com`, `*.notion.so` with wildcard support)
+- **Shortcuts**: current key bindings + a link to `chrome://extensions/shortcuts`
+- **History**: search, restore individually, or clear all closed-tab history
 
 ---
 
-## 開発
+## Privacy
+
+Tab Zen **does not collect or transmit any personal data**. All data lives in your browser's `chrome.storage` and no network requests are made. See [PRIVACY.md](./PRIVACY.md) for details.
+
+---
+
+## Development
 
 ```bash
 pnpm install
-pnpm dev      # Vite 開発サーバー (dist/ にライブ出力)
-pnpm build    # 本番ビルド
+pnpm dev      # Vite dev server (live-outputs to dist/)
+pnpm build    # production build
 pnpm test     # Vitest
 pnpm lint     # ESLint
 ```
 
-技術スタック: Vite 6 + React 19 + TypeScript (strict) + Tailwind CSS v4 + Zustand + Zod + Vitest。Manifest V3。
+Stack: Vite 6 + React 19 + TypeScript (strict) + Tailwind CSS v4 + Zustand + Zod + Vitest. Manifest V3.
 
 ---
 
-## ライセンス
+## License
 
 [MIT License](./LICENSE) © 2025 minisera

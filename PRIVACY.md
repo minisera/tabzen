@@ -1,42 +1,44 @@
-# Tab Zen — プライバシーポリシー
+# Tab Zen — Privacy Policy
 
-最終更新: 2026-04-25
+[日本語版 →](./PRIVACY.ja.md)
 
-## サマリー
+Last updated: 2026-04-25
 
-**Tab Zen は個人情報を一切収集・送信しません。** すべてのデータはあなたのブラウザ内 (`chrome.storage`) に保存され、外部サーバーへ送られることはありません。Tab Zen はネットワーク通信を行いません。
+## Summary
 
-## 拡張機能が扱う情報
+**Tab Zen does not collect or transmit any personal data.** All data is stored locally in your browser's `chrome.storage` and is never sent to any external server. Tab Zen makes no network requests on its own.
 
-| 情報                                                                                                                      | 保存先                 | 用途                                       | 保持期間                                           |
-| ------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------ | -------------------------------------------------- |
-| 開いているタブのメタデータ (URL / タイトル / ファビコン / 最終アクティブ時刻 / ピン留め・音声状態 / 未送信フォームフラグ) | `chrome.storage.local` | 自動クローズ判定、MRU タブ切替、復元履歴   | タブが閉じるまで                                   |
-| ユーザー設定 (閾値、除外ドメイン、表示数 等)                                                                              | `chrome.storage.sync`  | 設定の永続化と Google アカウント経由の同期 | ユーザーが削除するまで                             |
-| タブのスクリーンショット (低解像度 JPEG, 上限 100 件)                                                                     | `chrome.storage.local` | Alt+Q オーバーレイのプレビュー画像         | 7 日経過 / タブクローズ / ユーザー手動クリアで削除 |
-| 自動クローズしたタブの履歴 (URL / タイトル / 閉じた時刻)                                                                  | `chrome.storage.local` | ワンクリック復元                           | デフォルト 100 件まで保持 (ユーザー設定可)         |
+## What data the extension handles
 
-`chrome.storage.sync` は Google が提供する標準同期機構です。Tab Zen が独自にネットワーク送信することはありません。
+| Data                                                                                                           | Stored in              | Purpose                                              | Retention                                                      |
+| -------------------------------------------------------------------------------------------------------------- | ---------------------- | ---------------------------------------------------- | -------------------------------------------------------------- |
+| Open tab metadata (URL / title / favicon / last active timestamp / pinned & audible state / unsaved-form flag) | `chrome.storage.local` | Auto-close decisions, MRU switching, restore history | Until the tab is closed                                        |
+| User settings (thresholds, allowlist, overlay size, etc.)                                                      | `chrome.storage.sync`  | Persist settings and sync via your Google account    | Until removed by the user                                      |
+| Tab thumbnails (low-resolution JPEG, max 100)                                                                  | `chrome.storage.local` | Preview images for the Alt+Q overlay                 | Removed after 7 days, when the tab closes, or via manual clear |
+| Auto-closed tab history (URL / title / closed-at)                                                              | `chrome.storage.local` | One-click restoration                                | Default 100 entries (user-configurable)                        |
 
-## 必要な権限の理由
+`chrome.storage.sync` is Google's standard sync mechanism. Tab Zen itself does not initiate any independent network communication.
 
-| 権限                           | 用途                                                                                                                   |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `tabs`                         | 開いているタブのメタデータを取得し、自動整理と MRU 履歴を管理するため                                                  |
-| `alarms`                       | 1 分間隔で経過時間を確認し、閾値超過タブをサスペンド／クローズするため                                                 |
-| `storage`                      | 設定・タブ履歴・サムネイル等を端末ローカルに保存するため                                                               |
-| `scripting`                    | 拡張機能を更新した際、すでに開いているタブへ content script を再注入するため (Alt+Q オーバーレイの即時利用に必要)      |
-| `host_permissions: <all_urls>` | Alt+Q オーバーレイをすべてのウェブページに表示し、未送信フォームを検出するため。ページ内容の読み取りや変更は行いません |
+## Why each permission is required
 
-## 第三者への提供
+| Permission                     | Purpose                                                                                                                        |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `tabs`                         | Read open tab metadata to manage auto-cleanup and MRU history                                                                  |
+| `alarms`                       | Run the 1-minute scan that checks idle thresholds and processes tabs                                                           |
+| `storage`                      | Persist settings, history, and thumbnails locally                                                                              |
+| `scripting`                    | Re-inject the content script into already-open tabs after the extension is updated, so the Alt+Q overlay works immediately     |
+| `host_permissions: <all_urls>` | Display the Alt+Q overlay on every web page and detect unsaved form input. The extension does not read or modify page content. |
 
-ありません。
+## Sharing with third parties
 
-## ユーザーの操作で削除できるデータ
+None. Tab Zen does not share data with anyone.
 
-- **設定 / 履歴**: `chrome://extensions/` から Tab Zen を削除すると、関連するすべてのデータが削除されます
-- **サムネイルキャッシュ**: Options ページの「一般」→「サムネイルキャッシュ」→「キャッシュをクリア」ボタンでいつでも消去できます
-- **復元履歴**: Options ページの「復元履歴」タブから個別／一括削除できます
+## How to delete your data
 
-## お問い合わせ
+- **Settings & history**: removing Tab Zen from `chrome://extensions/` deletes all associated data
+- **Thumbnail cache**: clear from Options → General → Thumbnail Cache → Clear
+- **Restore history**: delete individually or all at once from Options → History
+
+## Contact
 
 GitHub Issues: https://github.com/minisera/tabzen/issues
