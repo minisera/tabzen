@@ -1,6 +1,8 @@
 import { Card } from '@/shared/components/ui/card';
 import pkg from '../../../package.json' with { type: 'json' };
 
+const REPO_URL = 'https://github.com/minisera/tabzen';
+
 export function About() {
   return (
     <div className="space-y-6">
@@ -19,7 +21,36 @@ export function About() {
         </div>
         <div>
           <span className="text-muted-foreground">ライセンス: </span>
-          <span>未定（リリース前に決定予定）</span>
+          <a
+            href={`${REPO_URL}/blob/main/LICENSE`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            MIT License
+          </a>
+        </div>
+        <div>
+          <span className="text-muted-foreground">リポジトリ: </span>
+          <a
+            href={REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            github.com/minisera/tabzen
+          </a>
+        </div>
+        <div>
+          <span className="text-muted-foreground">プライバシー: </span>
+          <a
+            href={`${REPO_URL}/blob/main/PRIVACY.ja.md`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            プライバシーポリシー
+          </a>
         </div>
       </Card>
     </div>
