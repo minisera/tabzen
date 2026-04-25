@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-04-25
+
+### Fixed
+
+- **Options > About tab** — License field showed the placeholder "未定（リリース前に決定予定）" left over from pre-release. Now correctly displays "MIT License" with a link to the LICENSE file.
+
+### Added
+
+- **Options > About tab** — Repository link and privacy-policy link added so users can quickly find the source and privacy details from inside the extension.
+
+### Internal
+
+- **CodeQL `js/incomplete-url-substring-sanitization` fix** — `thumbnail-capture.ts` now parses URLs with `new URL()` and matches by `hostname`, instead of `startsWith()` which could be bypassed by host-suffix tricks like `https://chromewebstore.google.com.evil.com`. No user-facing impact (the URL source was already trusted), but the check is now correct.
+- **Workflow permissions hardening** — `release.yml` and `codeql.yml` use top-level `read-all` and per-job write elevation, satisfying OpenSSF Scorecard's `Token-Permissions` check.
+- **`SECURITY.md`** added to declare the private vulnerability-reporting channel and SLA.
+
 ## [1.0.1] - 2026-04-25
 
 First public release. The previous 1.0.0 submission was withdrawn before review completed; this release supersedes it with hardening improvements.
@@ -47,6 +63,7 @@ Initial public release submitted to the Chrome Web Store.
 - **Popup** — Tab stats, quick actions (close inactive / close duplicates / suspend all), recent restore-history (5 entries).
 - **Privacy** — All data is stored locally in `chrome.storage`. No network requests are made and no personal data is collected.
 
-[Unreleased]: https://github.com/minisera/tabzen/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/minisera/tabzen/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/minisera/tabzen/releases/tag/v1.0.2
 [1.0.1]: https://github.com/minisera/tabzen/releases/tag/v1.0.1
 [1.0.0]: https://github.com/minisera/tabzen/releases/tag/v1.0.0

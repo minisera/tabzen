@@ -1,7 +1,7 @@
 {
   "name": "tabzen",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "時間経過でタブを自動クローズ・サスペンドし、Arc 風 MRU タブ切替を提供する Chrome 拡張",
   "type": "module",
   "scripts": {
