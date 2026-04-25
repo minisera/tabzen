@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+# Workflow に必要な最小権限のみ付与 (デフォルトの read/write を上書き)
+# CI は何も書き込まないので contents: read のみで十分。
+permissions:
+  contents: read
+
 # 同じ PR への新しい push が来たら古いジョブをキャンセルする (CI 時間節約)
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -18,15 +23,17 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # 後続ステップへ git credentials を漏らさない
+          persist-credentials: false
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 10
+        # version は package.json の packageManager フィールドから読まれる
+        uses: pnpm/action-setup@08c4be7e2e672a47d11bd04269e27e5f3e8529cb # v6.0.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 20
           cache: pnpm
