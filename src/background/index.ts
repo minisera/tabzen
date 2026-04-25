@@ -6,6 +6,7 @@ import { closeDuplicates, findDuplicates } from './duplicate-finder';
 import { getMruForWindow } from './mru-stack';
 import { getTabMeta } from '@/shared/storage/local-state';
 import { expireOldThumbnails, getThumbnails } from '@/shared/storage/thumbnails';
+import { bootstrapSnoozeAlarms, handleSnoozeAlarm, isSnoozeAlarm } from './snooze';
 import type { ContentConfirmResponse, ContentRequest, TabSwitchItem } from '@/shared/types';
 
 const ALARM_SCAN = 'tabzen-scan';
@@ -179,15 +180,21 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   console.log('[Tab Zen] onInstalled:', details.reason);
   await bootstrapCurrentTabs();
   await scheduleScan();
+  await bootstrapSnoozeAlarms();
   await injectContentScriptIntoExistingTabs();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
   await bootstrapCurrentTabs();
   await scheduleScan();
+  await bootstrapSnoozeAlarms();
 });
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (isSnoozeAlarm(alarm.name)) {
+    await handleSnoozeAlarm(alarm.name);
+    return;
+  }
   if (alarm.name !== ALARM_SCAN) return;
   const settings = await getSettings();
   const result = await runAutoClean(settings);
@@ -262,3 +269,4 @@ initTabMonitor();
 initMessaging();
 void bootstrapCurrentTabs();
 void scheduleScan();
+void bootstrapSnoozeAlarms();
