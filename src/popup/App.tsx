@@ -1,5 +1,13 @@
 import { useCallback, useState } from 'react';
-import { Copy, ExternalLink, Moon, RotateCw, Settings as Cog, Trash2 } from 'lucide-react';
+import {
+  Bookmark,
+  Copy,
+  ExternalLink,
+  Moon,
+  RotateCw,
+  Settings as Cog,
+  Trash2,
+} from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Separator } from '@/shared/components/ui/separator';
@@ -34,6 +42,11 @@ export default function App() {
 
   const openHistoryPage = () => {
     const url = chrome.runtime.getURL('src/options/index.html#history');
+    void chrome.tabs.create({ url });
+  };
+
+  const openSessionsPage = () => {
+    const url = chrome.runtime.getURL('src/options/index.html#sessions');
     void chrome.tabs.create({ url });
   };
 
@@ -145,6 +158,29 @@ export default function App() {
                 >
                   <Moon className="w-4 h-4" />
                   全タブをサスペンド
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={pending !== null}
+                  onClick={() =>
+                    void runAction('saveSession', async () => {
+                      const name = window.prompt('セッション名を入力 (空ならタイムスタンプ)', '');
+                      if (name === null) return 'キャンセルしました';
+                      const session = await sendMessage({
+                        kind: 'saveSession',
+                        name,
+                        scope: 'currentWindow',
+                      });
+                      return `「${session.name}」を保存しました (${session.items.length} タブ)`;
+                    })
+                  }
+                >
+                  <Bookmark className="w-4 h-4" />
+                  ウィンドウをセッション保存
+                </Button>
+                <Button variant="ghost" size="sm" onClick={openSessionsPage}>
+                  <ExternalLink className="w-3 h-3" />
+                  セッション一覧を開く
                 </Button>
               </div>
             </section>

@@ -1,6 +1,7 @@
 import type { ClosedTab, TabMeta } from '@/shared/schema/tab-meta';
 import type { Settings } from '@/shared/schema/settings';
 import type { DayStat } from '@/shared/schema/daily-stats';
+import type { TabSession } from '@/shared/schema/session';
 
 export type TabSwitchItem = TabMeta & { thumbnail?: string };
 
@@ -38,7 +39,12 @@ export type RuntimeRequest =
   | { kind: 'getThumbnailStats' }
   | { kind: 'clearThumbnails' }
   | { kind: 'getDailyStats' }
-  | { kind: 'clearDailyStats' };
+  | { kind: 'clearDailyStats' }
+  | { kind: 'saveSession'; name: string; scope: 'currentWindow' | 'allWindows' }
+  | { kind: 'listSessions' }
+  | { kind: 'openSession'; id: string; mode: 'newWindow' | 'currentWindow' }
+  | { kind: 'deleteSession'; id: string }
+  | { kind: 'renameSession'; id: string; name: string };
 
 export type RuntimeResponse<T = unknown> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -79,4 +85,9 @@ export type RuntimeResponseMap = {
   clearThumbnails: void;
   getDailyStats: DayStat[];
   clearDailyStats: void;
+  saveSession: TabSession;
+  listSessions: TabSession[];
+  openSession: { opened: number };
+  deleteSession: void;
+  renameSession: void;
 };

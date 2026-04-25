@@ -14,6 +14,7 @@ import { clearHistory, listHistory, restoreAt } from './restore-history';
 import { getMruForWindow } from './mru-stack';
 import { clearAllThumbnails, getThumbnails, getThumbnailStats } from '@/shared/storage/thumbnails';
 import { clearDailyStats, getDailyStats } from '@/shared/storage/daily-stats';
+import { deleteSession, listSessions, openSession, renameSession, saveSession } from './sessions';
 
 async function computeStats(): Promise<Stats> {
   const map = await getTabMeta();
@@ -161,6 +162,31 @@ export function initMessaging(): void {
             sendResponse({ ok: true });
             return;
           }
+          case 'saveSession': {
+            const win =
+              sender.tab?.windowId ?? (await chrome.windows.getCurrent().catch(() => null))?.id;
+            const session = await saveSession({
+              name: msg.name,
+              scope: msg.scope,
+              windowId: typeof win === 'number' ? win : undefined,
+            });
+            sendResponse({ ok: true, data: session });
+            return;
+          }
+          case 'listSessions':
+            sendResponse({ ok: true, data: await listSessions() });
+            return;
+          case 'openSession':
+            sendResponse({ ok: true, data: await openSession({ id: msg.id, mode: msg.mode }) });
+            return;
+          case 'deleteSession':
+            await deleteSession(msg.id);
+            sendResponse({ ok: true });
+            return;
+          case 'renameSession':
+            await renameSession(msg.id, msg.name);
+            sendResponse({ ok: true });
+            return;
           default: {
             const _exhaustive: never = msg;
             sendResponse({ ok: false, error: `unknown kind: ${JSON.stringify(_exhaustive)}` });
