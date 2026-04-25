@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import {
   Bookmark,
-  Clock,
   Copy,
   ExternalLink,
   Moon,
@@ -16,13 +15,11 @@ import { ZenIcon } from '@/shared/components/zen-icon';
 import { sendMessage } from '@/shared/lib/runtime-client';
 import { usePopupData } from '@/shared/hooks/usePopupData';
 import { relativeFromNow } from '@/shared/utils/time';
-import { SNOOZE_PRESETS } from '@/shared/utils/snooze-presets';
 
 export default function App() {
   const { stats, history, loading, error, refresh } = usePopupData();
   const [pending, setPending] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [snoozeOpen, setSnoozeOpen] = useState(false);
 
   const runAction = useCallback(
     async (key: string, fn: () => Promise<string>) => {
@@ -185,36 +182,6 @@ export default function App() {
                   <ExternalLink className="w-3 h-3" />
                   セッション一覧を開く
                 </Button>
-                <Button
-                  variant="secondary"
-                  disabled={pending !== null}
-                  onClick={() => setSnoozeOpen((v) => !v)}
-                >
-                  <Clock className="w-4 h-4" />
-                  現在のタブを Snooze
-                </Button>
-                {snoozeOpen && (
-                  <div className="grid grid-cols-2 gap-1.5 p-2 rounded-md border border-border bg-secondary/40">
-                    {SNOOZE_PRESETS.map((p) => (
-                      <Button
-                        key={p.id}
-                        variant="outline"
-                        size="sm"
-                        disabled={pending !== null}
-                        onClick={() =>
-                          void runAction(`snooze:${p.id}`, async () => {
-                            const wakeAt = p.resolve(Date.now());
-                            await sendMessage({ kind: 'snoozeActiveTab', wakeAt });
-                            setSnoozeOpen(false);
-                            return `${p.label}に再オープンします`;
-                          })
-                        }
-                      >
-                        {p.label}
-                      </Button>
-                    ))}
-                  </div>
-                )}
               </div>
             </section>
 
