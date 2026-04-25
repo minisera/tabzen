@@ -15,6 +15,9 @@ dist-ssr
 # Chrome Web Store 配布用 zip (build 成果物)
 tabzen-v*.zip
 
+# Chrome Web Store 公開作業用の個人メモ (公開しない)
+WEBSTORE.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
