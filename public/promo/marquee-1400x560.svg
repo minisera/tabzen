@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 560">
+  <rect width="1400" height="560" fill="#0a0a0a" />
+  <!-- Enso (white circle with brush gap), scaled from icon.svg (r=40 → 170) -->
+  <circle
+    cx="280"
+    cy="280"
+    r="170"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="28"
+    stroke-linecap="round"
+    stroke-dasharray="943 340"
+    transform="rotate(-35 280 280)"
+  />
+  <!-- Title -->
+  <text
+    x="540"
+    y="280"
+    fill="#ffffff"
+    font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+    font-size="140"
+    font-weight="600"
+    letter-spacing="-3"
+  >Tab Zen</text>
+  <!-- Tagline -->
+  <text
+    x="544"
+    y="360"
+    fill="#b0b0b0"
+    font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+    font-size="42"
+    font-weight="400"
+  >Quietly tidy your tabs.</text>
+  <text
+    x="544"
+    y="418"
+    fill="#b0b0b0"
+    font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+    font-size="42"
+    font-weight="400"
+  >Switch by recency.</text>
+</svg>
