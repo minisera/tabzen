@@ -6,6 +6,7 @@ export default defineManifest({
   name: 'Tab Zen',
   description: '時間経過でタブを自動クローズ・サスペンドし、Arc風MRUタブ切替を提供するタブ管理拡張',
   version: pkg.version,
+  homepage_url: 'https://github.com/minisera/tabzen',
   icons: {
     16: 'icons/icon-16.png',
     32: 'icons/icon-32.png',
