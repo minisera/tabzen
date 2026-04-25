@@ -26,5 +26,9 @@
   "cmdSwitchTabFallbackPrev": {
     "message": "MRU タブ切替 (前へ)",
     "description": "switch-tab-fallback-prev コマンドの説明。"
+  },
+  "cmdOpenSearchPalette": {
+    "message": "全タブ横断検索パレットを開く",
+    "description": "open-search-palette コマンドの説明。"
   }
 }

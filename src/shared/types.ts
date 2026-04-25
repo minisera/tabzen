@@ -31,6 +31,7 @@ export type RuntimeRequest =
   | { kind: 'restoreAt'; index: number }
   | { kind: 'clearHistory' }
   | { kind: 'getMruPreview'; windowId?: number }
+  | { kind: 'getAllTabs' }
   | { kind: 'switchToTab'; tabId: number }
   | { kind: 'reportFormDirty'; dirty: boolean }
   | { kind: 'getThumbnailStats' }
@@ -44,6 +45,10 @@ export type ContentRequest =
   | {
       kind: 'tabSwitchCycle';
       direction: 'next' | 'prev';
+      items: TabSwitchItem[];
+    }
+  | {
+      kind: 'openSearchPalette';
       items: TabSwitchItem[];
     };
 
@@ -64,6 +69,7 @@ export type RuntimeResponseMap = {
   restoreAt: void;
   clearHistory: void;
   getMruPreview: TabSwitchItem[];
+  getAllTabs: TabSwitchItem[];
   switchToTab: void;
   reportFormDirty: void;
   getThumbnailStats: { count: number; approximateBytes: number };

@@ -62,5 +62,9 @@ export default defineManifest({
       suggested_key: { default: 'Ctrl+Shift+Q' },
       description: '__MSG_cmdSwitchTabFallbackPrev__',
     },
+    'open-search-palette': {
+      suggested_key: { default: 'Alt+Shift+P' },
+      description: '__MSG_cmdOpenSearchPalette__',
+    },
   },
 });
