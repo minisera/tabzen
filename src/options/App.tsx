@@ -1,6 +1,7 @@
 import { useEffect, type ComponentType } from 'react';
 import {
   BarChart3,
+  Bookmark,
   Database,
   History as HistoryIcon,
   Info,
@@ -18,6 +19,7 @@ import { Shortcuts } from './pages/Shortcuts';
 import { History } from './pages/History';
 import { Statistics } from './pages/Statistics';
 import { Backup } from './pages/Backup';
+import { Sessions } from './pages/Sessions';
 import { About } from './pages/About';
 
 interface NavItem {
@@ -33,6 +35,7 @@ const NAV: NavItem[] = [
   { id: 'shortcuts', label: 'ショートカット', icon: Keyboard, Page: Shortcuts },
   { id: 'history', label: '復元履歴', icon: HistoryIcon, Page: History },
   { id: 'statistics', label: '統計', icon: BarChart3, Page: Statistics },
+  { id: 'sessions', label: 'セッション', icon: Bookmark, Page: Sessions },
   { id: 'backup', label: 'バックアップ', icon: Database, Page: Backup },
   { id: 'about', label: 'About', icon: Info, Page: About },
 ];
