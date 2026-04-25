@@ -7,10 +7,10 @@ export default defineManifest({
   description: '時間経過でタブを自動クローズ・サスペンドし、Arc風MRUタブ切替を提供するタブ管理拡張',
   version: pkg.version,
   icons: {
-    16: 'icons/icon.svg',
-    32: 'icons/icon.svg',
-    48: 'icons/icon.svg',
-    128: 'icons/icon.svg',
+    16: 'icons/icon-16.png',
+    32: 'icons/icon-32.png',
+    48: 'icons/icon-48.png',
+    128: 'icons/icon-128.png',
   },
   permissions: ['tabs', 'alarms', 'storage', 'scripting'],
   host_permissions: ['<all_urls>'],
@@ -29,8 +29,8 @@ export default defineManifest({
   action: {
     default_popup: 'src/popup/index.html',
     default_icon: {
-      16: 'icons/icon.svg',
-      32: 'icons/icon.svg',
+      16: 'icons/icon-16.png',
+      32: 'icons/icon-32.png',
     },
   },
   options_page: 'src/options/index.html',
