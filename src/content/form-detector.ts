@@ -6,10 +6,18 @@ export function initFormDetector(): void {
   const setDirty = (d: boolean) => {
     if (d === dirty) return;
     dirty = d;
+    // 拡張リロード後に残った古い content script から呼ばれると
+    // sendMessage は同期 throw する ("Extension context invalidated.")。
+    // chrome.runtime.id 不在でガードしてから try/catch で握りつぶす。
+    if (!chrome.runtime?.id) return;
     const msg: RuntimeRequest = { kind: 'reportFormDirty', dirty: d };
-    chrome.runtime.sendMessage(msg).catch(() => {
-      // SW が寝ているケースなど
-    });
+    try {
+      chrome.runtime.sendMessage(msg).catch(() => {
+        // SW が寝ている / context invalidated 等は無視
+      });
+    } catch {
+      // 同期 throw も無視
+    }
   };
 
   const onInput = (e: Event) => {
