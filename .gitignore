@@ -20,6 +20,11 @@ tabzen-v*/
 # Chrome Web Store 公開作業用の個人メモ (公開しない)
 WEBSTORE.md
 
+# Claude Code のローカル設定 (個人の許可設定 / セッション情報など)。
+# CLAUDE.md はリポジトリのドキュメントとしてコミットするが、.claude/ は
+# 個人のワークスペースなので追跡しない。
+.claude/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
