@@ -1,5 +1,6 @@
 import type { ClosedTab, TabMeta } from '@/shared/schema/tab-meta';
 import type { Settings } from '@/shared/schema/settings';
+import type { DayStat } from '@/shared/schema/daily-stats';
 
 export type TabSwitchItem = TabMeta & { thumbnail?: string };
 
@@ -35,7 +36,9 @@ export type RuntimeRequest =
   | { kind: 'switchToTab'; tabId: number }
   | { kind: 'reportFormDirty'; dirty: boolean }
   | { kind: 'getThumbnailStats' }
-  | { kind: 'clearThumbnails' };
+  | { kind: 'clearThumbnails' }
+  | { kind: 'getDailyStats' }
+  | { kind: 'clearDailyStats' };
 
 export type RuntimeResponse<T = unknown> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -74,4 +77,6 @@ export type RuntimeResponseMap = {
   reportFormDirty: void;
   getThumbnailStats: { count: number; approximateBytes: number };
   clearThumbnails: void;
+  getDailyStats: DayStat[];
+  clearDailyStats: void;
 };

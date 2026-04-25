@@ -13,6 +13,7 @@ import { closeDuplicates, findDuplicates } from './duplicate-finder';
 import { clearHistory, listHistory, restoreAt } from './restore-history';
 import { getMruForWindow } from './mru-stack';
 import { clearAllThumbnails, getThumbnails, getThumbnailStats } from '@/shared/storage/thumbnails';
+import { clearDailyStats, getDailyStats } from '@/shared/storage/daily-stats';
 
 async function computeStats(): Promise<Stats> {
   const map = await getTabMeta();
@@ -139,6 +140,13 @@ export function initMessaging(): void {
             return;
           case 'clearThumbnails':
             await clearAllThumbnails();
+            sendResponse({ ok: true });
+            return;
+          case 'getDailyStats':
+            sendResponse({ ok: true, data: await getDailyStats() });
+            return;
+          case 'clearDailyStats':
+            await clearDailyStats();
             sendResponse({ ok: true });
             return;
           case 'reportFormDirty': {

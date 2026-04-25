@@ -1,6 +1,7 @@
 import type { Settings } from '@/shared/schema/settings';
 import { getTabMeta, setTabMeta } from '@/shared/storage/local-state';
 import { normalizeUrl } from '@/shared/utils/url-normalize';
+import { recordDailyStat } from '@/shared/storage/daily-stats';
 import type { DuplicateGroup } from '@/shared/types';
 
 export async function findDuplicates(settings: Settings): Promise<DuplicateGroup[]> {
@@ -38,6 +39,9 @@ export async function closeDuplicates(settings: Settings): Promise<number> {
       }
     }
   }
-  if (closed > 0) await setTabMeta(map);
+  if (closed > 0) {
+    await setTabMeta(map);
+    await recordDailyStat('manualClosed', closed);
+  }
   return closed;
 }

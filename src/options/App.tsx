@@ -1,5 +1,12 @@
 import { useEffect, type ComponentType } from 'react';
-import { History as HistoryIcon, Info, Keyboard, ShieldCheck, Sliders } from 'lucide-react';
+import {
+  BarChart3,
+  History as HistoryIcon,
+  Info,
+  Keyboard,
+  ShieldCheck,
+  Sliders,
+} from 'lucide-react';
 import { ZenIcon } from '@/shared/components/zen-icon';
 import { cn } from '@/shared/lib/utils';
 import { useHashRoute } from '@/shared/hooks/useHashRoute';
@@ -8,6 +15,7 @@ import { General } from './pages/General';
 import { Allowlist } from './pages/Allowlist';
 import { Shortcuts } from './pages/Shortcuts';
 import { History } from './pages/History';
+import { Statistics } from './pages/Statistics';
 import { About } from './pages/About';
 
 interface NavItem {
@@ -22,6 +30,7 @@ const NAV: NavItem[] = [
   { id: 'allowlist', label: '除外ドメイン', icon: ShieldCheck, Page: Allowlist },
   { id: 'shortcuts', label: 'ショートカット', icon: Keyboard, Page: Shortcuts },
   { id: 'history', label: '復元履歴', icon: HistoryIcon, Page: History },
+  { id: 'statistics', label: '統計', icon: BarChart3, Page: Statistics },
   { id: 'about', label: 'About', icon: Info, Page: About },
 ];
 
