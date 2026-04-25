@@ -1,12 +1,6 @@
 import { useEffect, type ComponentType } from 'react';
-import {
-  History as HistoryIcon,
-  Info,
-  Keyboard,
-  ShieldCheck,
-  Sliders,
-  Sparkles,
-} from 'lucide-react';
+import { History as HistoryIcon, Info, Keyboard, ShieldCheck, Sliders } from 'lucide-react';
+import { ZenIcon } from '@/shared/components/zen-icon';
 import { cn } from '@/shared/lib/utils';
 import { useHashRoute } from '@/shared/hooks/useHashRoute';
 import { useSettingsStore } from '@/shared/stores/settings-store';
@@ -46,7 +40,7 @@ export default function App() {
       <div className="max-w-5xl mx-auto p-6 flex gap-6">
         <aside className="w-56 shrink-0">
           <div className="flex items-center gap-2 mb-6">
-            <Sparkles className="w-6 h-6 text-primary" />
+            <ZenIcon className="w-6 h-6 text-foreground" />
             <h1 className="text-lg font-semibold">Tab Zen</h1>
           </div>
           <nav className="flex flex-col gap-1">

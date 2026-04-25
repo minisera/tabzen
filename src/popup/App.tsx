@@ -1,16 +1,9 @@
 import { useCallback, useState } from 'react';
-import {
-  Copy,
-  ExternalLink,
-  Moon,
-  RotateCw,
-  Settings as Cog,
-  Sparkles,
-  Trash2,
-} from 'lucide-react';
+import { Copy, ExternalLink, Moon, RotateCw, Settings as Cog, Trash2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Separator } from '@/shared/components/ui/separator';
+import { ZenIcon } from '@/shared/components/zen-icon';
 import { sendMessage } from '@/shared/lib/runtime-client';
 import { usePopupData } from '@/shared/hooks/usePopupData';
 import { relativeFromNow } from '@/shared/utils/time';
@@ -54,7 +47,7 @@ export default function App() {
     <div className="w-[360px] min-h-[440px] bg-background text-foreground flex flex-col">
       <header className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-primary" />
+          <ZenIcon className="w-5 h-5 text-foreground" />
           <h1 className="font-semibold">Tab Zen</h1>
         </div>
         <div className="flex items-center gap-1">
