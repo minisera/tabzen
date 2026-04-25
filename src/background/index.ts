@@ -91,12 +91,12 @@ async function handleTabSwitchFallback(
 ): Promise<void> {
   const win = await resolveWindowId(tab);
   if (typeof win !== 'number') {
-    console.debug('[Tab Zen] Alt+Q: no window');
+    console.debug('[Tab Zen] Ctrl+Q: no window');
     return;
   }
   const settings = await getSettings();
   const ids = (await getMruForWindow(win)).slice(0, settings.tabSwitcherMax);
-  console.debug('[Tab Zen] Alt+Q MRU ids:', ids, 'direction:', direction);
+  console.debug('[Tab Zen] Ctrl+Q MRU ids:', ids, 'direction:', direction);
   if (ids.length < 2) return;
 
   const map = await getTabMeta();
@@ -117,10 +117,10 @@ async function handleTabSwitchFallback(
         direction,
         items,
       } satisfies ContentRequest);
-      console.debug('[Tab Zen] Alt+Q: overlay requested on tab', active.id);
+      console.debug('[Tab Zen] Ctrl+Q: overlay requested on tab', active.id);
       return;
     } catch (err) {
-      console.debug('[Tab Zen] Alt+Q: content script unreachable, falling back', err);
+      console.debug('[Tab Zen] Ctrl+Q: content script unreachable, falling back', err);
     }
   }
   await tickDirectCycle(win, ids, direction);

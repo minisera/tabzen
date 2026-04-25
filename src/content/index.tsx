@@ -46,7 +46,7 @@ function isContentRequest(v: unknown): v is ContentRequest {
 // 拡張更新時の chrome.scripting.executeScript 再注入と、その後の
 // ページリロードによる manifest content_scripts 自動注入が重なると、
 // 同一ページで content script が 2 回実行されて chrome.runtime.onMessage
-// が二重登録される。結果、Alt+Q 1 回で selected が 2 つ進むなどの
+// が二重登録される。結果、Ctrl+Q 1 回で selected が 2 つ進むなどの
 // 重複動作が発生するため、ISOLATED world 上の window にフラグを置いて
 // 2 回目の初期化を抑止する。
 type WindowWithFlag = Window & { [INIT_FLAG]?: boolean };
@@ -76,7 +76,7 @@ if (w[INIT_FLAG]) {
   });
 
   // React ルートは Shadow DOM 内で動くため、ページの DOMContentLoaded を
-  // 待つ必要はない。document_start で即座にマウントし、Alt+Q のメッセージ
+  // 待つ必要はない。document_start で即座にマウントし、Ctrl+Q のメッセージ
   // を受けた時点で必ずリスナーが登録されている状態にする。
   mount();
 

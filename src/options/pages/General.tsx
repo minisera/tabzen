@@ -86,8 +86,9 @@ function ThumbCacheSection({ trigger, onCleared }: ThumbCacheSectionProps) {
     <div>
       <Label>サムネイルキャッシュ</Label>
       <p className="text-xs text-muted-foreground mt-1">
-        Alt+Q のオーバーレイで各タブの「最後にアクティブだった時の画面」を表示するためのキャッシュ。
-        上限 100 件、7 日経過で自動削除されます。
+        Ctrl+Q
+        のオーバーレイで各タブの「最後にアクティブだった時の画面」を表示するためのキャッシュ。 上限
+        100 件、7 日経過で自動削除されます。
       </p>
       <div className="flex items-center gap-3 mt-3">
         <span className="text-sm text-muted-foreground tabular-nums">
@@ -204,7 +205,7 @@ export function General() {
             onChange={(e) => setDraft({ tabSwitcherMax: Number(e.target.value) })}
           />
           <p className="text-xs text-muted-foreground">
-            Alt+Q で開くオーバーレイに表示する MRU タブの最大数 (2〜10)。
+            Ctrl+Q で開くオーバーレイに表示する MRU タブの最大数 (2〜10)。
           </p>
         </div>
 

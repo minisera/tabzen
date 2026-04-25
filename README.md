@@ -10,7 +10,7 @@ A Chrome extension that quietly tidies up your tab clutter over time and provide
 
 - **Auto-close inactive tabs** — Tabs are closed automatically once they exceed your configured idle threshold. Set the threshold in **minutes / hours / days** (up to 30 days).
 - **Two-stage suspend → close** — Tabs are first discarded with `chrome.tabs.discard()` to free memory while keeping the UI; after a longer threshold they are fully closed.
-- **Switch to recent tabs with Alt+Q** — A centered overlay with thumbnails appears; hold Alt and tap Q repeatedly to step through, release Alt to confirm. Works as Option+Q on macOS.
+- **Switch to recent tabs with Ctrl+Q** — A centered overlay with thumbnails appears; hold Ctrl and tap Q repeatedly to step through, release Ctrl to confirm.
 - **Restore history** — Auto-closed tabs can be reopened with one click. Persists across browser restarts (default 100 entries, configurable).
 - **Smart exclusions** — Pinned tabs, audible tabs, the active tab, tabs with unsaved form input, and any domain on your allowlist are automatically excluded.
 - **Duplicate detection** — Normalizes URLs (UTM stripping, trailing slash, fragments) to find duplicate tabs and closes all but the most recent.
@@ -38,17 +38,17 @@ A Chrome extension that quietly tidies up your tab clutter over time and provide
 
 ### Keyboard shortcuts
 
-| Shortcut                      | Action                                                                                  |
-| ----------------------------- | --------------------------------------------------------------------------------------- |
-| **Alt+Q** (Option+Q on macOS) | Open the MRU switcher overlay. Hold Alt and tap Q to move down; release Alt to confirm. |
-| **Alt+Shift+Q**               | Move up (reverse direction) in the overlay.                                             |
-| **Alt+Shift+X**               | Close all tabs that exceed the close threshold right now.                               |
-| **Alt+Shift+D**               | Detect and close duplicate tabs (with confirmation).                                    |
-| `Esc`                         | Cancel the overlay (no tab switch).                                                     |
-| `Enter` / click               | Switch to the highlighted tab.                                                          |
-| `↑` `↓` `←` `→`               | Move the selection in the overlay (alternative to Q).                                   |
+| Shortcut         | Action                                                                                    |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| **Ctrl+Q**       | Open the MRU switcher overlay. Hold Ctrl and tap Q to move down; release Ctrl to confirm. |
+| **Ctrl+Shift+Q** | Move up (reverse direction) in the overlay.                                               |
+| **Alt+Shift+X**  | Close all tabs that exceed the close threshold right now.                                 |
+| **Alt+Shift+D**  | Detect and close duplicate tabs (with confirmation).                                      |
+| `Esc`            | Cancel the overlay (no tab switch).                                                       |
+| `Enter` / click  | Switch to the highlighted tab.                                                            |
+| `↑` `↓` `←` `→`  | Move the selection in the overlay (alternative to Q).                                     |
 
-> Ctrl+Tab is reserved by Chrome for built-in browser navigation and cannot be intercepted by extensions, so Tab Zen uses **Alt+Q** by default. You can rebind any shortcut from `chrome://extensions/shortcuts`.
+> Ctrl+Tab is reserved by Chrome for built-in browser navigation and cannot be intercepted by extensions, so Tab Zen uses **Ctrl+Q** by default. You can rebind any shortcut from `chrome://extensions/shortcuts`.
 
 ### Popup (toolbar icon)
 

@@ -49,11 +49,11 @@ export default defineManifest({
         '現在のウィンドウの全タブをクローズ (危険なためデフォルトキー未設定。chrome://extensions/shortcuts で割り当て)',
     },
     'switch-tab-fallback': {
-      suggested_key: { default: 'Alt+Q' },
+      suggested_key: { default: 'Ctrl+Q' },
       description: 'MRU タブ切替 (次へ)',
     },
     'switch-tab-fallback-prev': {
-      suggested_key: { default: 'Alt+Shift+Q' },
+      suggested_key: { default: 'Ctrl+Shift+Q' },
       description: 'MRU タブ切替 (前へ)',
     },
   },

@@ -101,7 +101,7 @@ export function TabSwitcherOverlay() {
         commitCurrent();
       } else if (e.key === 'q' || e.key === 'Q') {
         // オーバーレイ表示中は修飾キー有無に関わらず Q で移動。
-        // Shift で逆方向。Alt+Shift+Q が Mac で動かないケースの保険。
+        // Shift で逆方向。Ctrl+Shift+Q が Mac で動かないケースの保険。
         e.preventDefault();
         e.stopPropagation();
         moveBy(e.shiftKey ? 'prev' : 'next');
@@ -117,8 +117,9 @@ export function TabSwitcherOverlay() {
     };
 
     // 修飾キー (Alt / Control / Meta) のいずれかをリリースしたら確定。
-    // Mac の Chrome では chrome.commands に Alt+Q を登録しても実際は
-    // Ctrl+Q として処理されることがあるため、いずれの修飾キーにも対応する。
+    // Mac でも Ctrl は通常タブ切替に使われていないため Ctrl をデフォルトに。
+    // ユーザーが Alt+Q や Cmd+Q に再割り当てしても動くよう、いずれの修飾
+    // キーリリースでも commit する。
     const onKeyUp = (e: KeyboardEvent) => {
       if (!stateRef.current.open) return;
       if (e.key === 'Alt' || e.key === 'Control' || e.key === 'Meta') {
@@ -162,11 +163,11 @@ export function TabSwitcherOverlay() {
         <div className="px-4 py-2 border-b border-border flex items-center justify-between text-xs text-muted-foreground shrink-0">
           <span>最近のタブ</span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Alt+Q</kbd>
+            <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Ctrl+Q</kbd>
             <span>次</span>
-            <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Alt+Shift+Q</kbd>
+            <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Ctrl+Shift+Q</kbd>
             <span>前</span>
-            <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Alt↑</kbd>
+            <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Ctrl↑</kbd>
             <span>確定</span>
             <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Esc</kbd>
           </span>
