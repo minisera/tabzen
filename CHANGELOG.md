@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **MRU タブ切替オーバーレイがページによって縮む / 位置ずれする問題** — ページ側 (`<html>` 等) に `transform` / `filter` / `contain` 等が当たっていると、`position: fixed` の containing block が viewport から外れてしまい、オーバーレイが小さく表示される / 位置がずれることがあった (Notion / Linear / 一部 Next.js サイト等)。Content Script のホスト要素を `popover="manual"` + `showPopover()` で **Top Layer** に載せ、ページ側の CSS から完全に独立させて常に viewport 全体にフィットするようにした。`showPopover` 非対応の古い Chrome (<114) は従来通りの動作にフォールバック。
+- **MRU 履歴が 1〜2 件しかない時に切替オーバーレイが極端に小さくなる問題** — カードに `min-h-[280px]` を追加し、件数が少なくても一定の高さを保つようにした。併せて狭い viewport で 720px がはみ出さないよう `max-w-[92vw]` も追加 (検索パレットと同じガード)。
+
+### Changed
+
+- **Popup stats labels** — `タブ数` / `クローズ候補` / `サスペンド済` の意味が一目で伝わらないため、各セルにホバー (またはキーボードフォーカス) で説明を表示するツールチップを追加した。
+- **Options > Shortcuts** — デフォルトキー未設定のショートカット (`現在のウィンドウの全タブをクローズ` と `MRU タブ切替 (前へ)`) について、コマンド説明文に括弧書きで埋めていた理由を、キー側の `未設定` バッジに付くツールチップへ移動した。本文がすっきりし、未設定の理由 (危険性 / Chrome のキー数上限) もホバーで確認できる。
+
 ## [1.0.2] - 2026-04-25
 
 ### Fixed

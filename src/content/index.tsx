@@ -20,9 +20,34 @@ function mount(): Cleanup {
 
   const host = document.createElement('div');
   host.id = HOST_ID;
+  // popover="manual" で Top Layer に載せる。
+  // 通常の position:fixed は祖先 (<html> 等) に transform/filter/contain/
+  // backdrop-filter 等があると containing block が viewport ではなくその
+  // 祖先になり、オーバーレイが縮んだり位置ずれを起こすことがあった
+  // (Notion / Linear / 一部 Next.js サイト等)。Top Layer は祖先の CSS から
+  // 完全に独立して viewport 直下にレンダリングされるためこれを根本解決する。
+  // showPopover が無い古い Chrome (<114) では Top Layer 化されないだけで
+  // 通常の fixed positioning として動作するためフォールバック動作になる。
+  host.setAttribute('popover', 'manual');
+  // popover の UA 既定 (margin: auto / width: fit-content / border / padding 等)
+  // を inline で確実に上書きする。`all: initial` は popover の UA スタイルを
+  // 含む user-agent origin より優先される。
   host.style.cssText =
-    'all: initial; position: fixed; inset: 0; z-index: 2147483647; pointer-events: none;';
+    'all: initial; position: fixed; inset: 0; width: 100vw; height: 100vh; ' +
+    'margin: 0; padding: 0; border: 0; background: transparent; ' +
+    'overflow: visible; z-index: 2147483647; pointer-events: none;';
   document.documentElement.appendChild(host);
+
+  if (typeof host.showPopover === 'function') {
+    try {
+      host.showPopover();
+    } catch (e) {
+      // ページ側で既に Top Layer に乗っている要素 (fullscreen 等) と
+      // 衝突するレアケース。Top Layer 化を諦めて通常の fixed positioning に
+      // フォールバック。
+      console.warn('[Tab Zen] showPopover failed, falling back:', e);
+    }
+  }
 
   const shadow = host.attachShadow({ mode: 'open' });
 
