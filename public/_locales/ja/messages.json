@@ -16,7 +16,7 @@
     "description": "close-duplicates コマンドの説明。"
   },
   "cmdCloseAllWindow": {
-    "message": "現在のウィンドウの全タブをクローズ (危険なためデフォルトキー未設定。chrome://extensions/shortcuts で割り当て)",
+    "message": "現在のウィンドウの全タブをクローズ",
     "description": "close-all-window コマンドの説明。"
   },
   "cmdSwitchTabFallback": {

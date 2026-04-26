@@ -7,7 +7,12 @@ export type TabSwitchItem = TabMeta & { thumbnail?: string };
 
 export interface Stats {
   totalTabs: number;
-  /** クローズ閾値を超えている (=「今すぐ閉じる」で対象になる) タブ数 */
+  /**
+   * クローズ閾値を超えているタブ数 (= 手動「クローズ閾値超のタブを閉じる」
+   * ボタンの対象件数)。settings.enabled=true なら 1 分間隔の auto-cleaner
+   * スキャンで処理されて通常は 0。auto-clean 無効や Service Worker 起動直後は
+   * 非 0 に溜まる。
+   */
   closeCandidates: number;
   /** 自動管理対象 (除外ルールに該当しないタブ) の総数 */
   managedCount: number;

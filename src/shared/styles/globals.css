@@ -58,3 +58,26 @@
     color: var(--color-foreground);
   }
 }
+
+/* Shadow DOM 限定の上書き。Content Script の overlay は Shadow DOM 内で
+   動くが、CSS の rem 単位は仕様上 document root (<html>) の font-size を
+   参照する。ページが <html> { font-size: 10px } のような独自スケールを
+   当てているサイト (YouTube は実際に 10px) では Tailwind v4 の
+   --spacing / --text-* / --radius-* が rem ベースのため Shadow DOM 内の
+   サイズが 62.5% に縮んでしまう。
+   :host セレクタは Shadow DOM 内でしかマッチしないため、popup / options
+   (通常 DOM、:host にマッチする要素なし) には影響なし。値は 16px ベース
+   時の rem を px 換算したもので、ページ font-size に依存しなくなる。 */
+:host {
+  --spacing: 4px;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+}

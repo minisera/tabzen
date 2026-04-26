@@ -157,7 +157,12 @@ export function TabSwitcherOverlay() {
       style={{ pointerEvents: 'auto' }}
     >
       <div
-        className="w-[720px] max-h-[92vh] bg-card text-card-foreground rounded-xl shadow-2xl border border-border overflow-hidden flex flex-col"
+        // max-w: 狭い viewport (DevTools 横置き / 小型ノート / 縦分割) で
+        // 720px がはみ出すのを防ぐ。
+        // min-h: MRU 履歴が 1〜2 件しかない時にカードがヘッダー + 数十 px
+        // しか無い極小サイズになるのを防ぐ (空の余白で良いのでスケールを
+        // 一定以上に保つ)。
+        className="w-[720px] max-w-[92vw] min-h-[280px] max-h-[92vh] bg-card text-card-foreground rounded-xl shadow-2xl border border-border overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-4 py-2 border-b border-border flex items-center justify-between text-xs text-muted-foreground shrink-0">
