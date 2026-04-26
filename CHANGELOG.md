@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **MRU タブ切替オーバーレイがページによって縮む / 位置ずれする問題** — ページ側 (`<html>` 等) に `transform` / `filter` / `contain` 等が当たっていると、`position: fixed` の containing block が viewport から外れてしまい、オーバーレイが小さく表示される / 位置がずれることがあった (Notion / Linear / 一部 Next.js サイト等)。Content Script のホスト要素を `popover="manual"` + `showPopover()` で **Top Layer** に載せ、ページ側の CSS から完全に独立させて常に viewport 全体にフィットするようにした。`showPopover` 非対応の古い Chrome (<114) は従来通りの動作にフォールバック。
 - **MRU 履歴が 1〜2 件しかない時に切替オーバーレイが極端に小さくなる問題** — カードに `min-h-[280px]` を追加し、件数が少なくても一定の高さを保つようにした。併せて狭い viewport で 720px がはみ出さないよう `max-w-[92vw]` も追加 (検索パレットと同じガード)。
+- **YouTube などページが `<html>` の `font-size` を変更しているサイトでオーバーレイが縮む問題** — Shadow DOM 内でも CSS の `rem` は document root (`<html>`) の `font-size` を参照する仕様のため、YouTube (`<html> { font-size: 10px }`) では Tailwind v4 の `--spacing` / `--text-*` / `--radius-*` が rem 由来で 62.5% に縮んでいた。`:host` セレクタ (Shadow DOM 限定) でこれらを px に固定し、ページ font-size に依存しないようにした。popup / options 側は `:host` にマッチする要素が無いため影響なし。
 
 ### Changed
 
