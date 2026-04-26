@@ -11,6 +11,7 @@ import {
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Separator } from '@/shared/components/ui/separator';
+import { Tooltip } from '@/shared/components/ui/tooltip';
 import { ZenIcon } from '@/shared/components/zen-icon';
 import { sendMessage } from '@/shared/lib/runtime-client';
 import { usePopupData } from '@/shared/hooks/usePopupData';
@@ -85,16 +86,19 @@ export default function App() {
                 label="タブ数"
                 value={stats?.totalTabs ?? 0}
                 hint="このブラウザで開いているタブの総数"
+                align="start"
               />
               <Stat
                 label="クローズ候補"
                 value={stats?.closeCandidates ?? 0}
-                hint="クローズ閾値を超えていて「今すぐ閉じる」の対象になるタブ数"
+                hint="クローズ閾値を超え、自動クローズ対象になっているタブ数 (下のボタンから即時クローズも可能)"
+                align="center"
               />
               <Stat
                 label="サスペンド済"
                 value={stats?.suspendedCount ?? 0}
                 hint="メモリ解放済み (chrome.tabs.discard 済み) のタブ数"
+                align="end"
               />
             </Card>
 
@@ -235,11 +239,34 @@ export default function App() {
   );
 }
 
-function Stat({ label, value, hint }: { label: string; value: number; hint?: string }) {
-  return (
-    <div title={hint}>
+function Stat({
+  label,
+  value,
+  hint,
+  align = 'center',
+}: {
+  label: string;
+  value: number;
+  hint?: string;
+  align?: 'start' | 'center' | 'end';
+}) {
+  const body = (
+    <>
       <div className="text-xl font-semibold tabular-nums">{value}</div>
       <div className="text-xs text-muted-foreground">{label}</div>
-    </div>
+    </>
+  );
+  if (!hint) return <div>{body}</div>;
+  // Shadow Root を使う content script ではなく popup なので、CSS だけで動く
+  // hover/focus tooltip で十分。tabIndex=0 でキーボードからも辿れる。
+  return (
+    <Tooltip content={hint} side="bottom" align={align} className="cursor-help">
+      <div
+        tabIndex={0}
+        className="outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+      >
+        {body}
+      </div>
+    </Tooltip>
   );
 }

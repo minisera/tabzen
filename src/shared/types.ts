@@ -7,7 +7,7 @@ export type TabSwitchItem = TabMeta & { thumbnail?: string };
 
 export interface Stats {
   totalTabs: number;
-  /** クローズ閾値を超えている (=「今すぐ閉じる」で対象になる) タブ数 */
+  /** クローズ閾値を超え、自動クローズ対象になっているタブ数 */
   closeCandidates: number;
   /** 自動管理対象 (除外ルールに該当しないタブ) の総数 */
   managedCount: number;

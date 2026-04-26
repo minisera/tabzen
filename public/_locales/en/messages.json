@@ -16,7 +16,7 @@
     "description": "Description for the close-duplicates keyboard command."
   },
   "cmdCloseAllWindow": {
-    "message": "Close all tabs in the current window (no default key — assign one in chrome://extensions/shortcuts)",
+    "message": "Close all tabs in the current window",
     "description": "Description for the close-all-window keyboard command."
   },
   "cmdSwitchTabFallback": {
