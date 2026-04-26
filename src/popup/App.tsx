@@ -91,7 +91,7 @@ export default function App() {
               <Stat
                 label="クローズ候補"
                 value={stats?.closeCandidates ?? 0}
-                hint="クローズ閾値を超え、自動クローズ対象になっているタブ数 (下のボタンから即時クローズも可能)"
+                hint="下のボタン「クローズ閾値超のタブを閉じる」で閉じる対象の件数。自動クローズ ON なら次回スキャン (1 分間隔) で処理されるため通常は 0。OFF にしている / 起動直後はここに溜まる"
                 align="center"
               />
               <Stat
