@@ -29,6 +29,13 @@ export function TabSwitcherOverlay() {
   // setState には render 用に最新値を渡し、stateRef は handler 内で
   // 直接書き換えることで両者の食い違いを防ぐ。
   const stateRef = useRef<State>(INITIAL);
+  // オーバーレイは画面中央に固定表示されるため、開いた瞬間のカーソル直下に
+  // アイテムが出現しがちで、Chrome が要素出現時にも mouseenter を発火する
+  // 仕様や、わずかな手の震えで意図しないホバー選択が走ってしまう。
+  // 「ユーザーが実際に意図して動かした」と判定するまでは onMouseEnter を
+  // 無視するためのフラグ。閾値 (5px) 未満の動きは誤反応とみなす。
+  const mouseMovedRef = useRef(false);
+  const mouseOriginRef = useRef<{ x: number; y: number } | null>(null);
 
   const applyState = useCallback((next: State) => {
     stateRef.current = next;
@@ -79,6 +86,10 @@ export function TabSwitcherOverlay() {
       if (!prev.open) {
         if (incoming.length < 2) return;
         const selected = direction === 'next' ? 1 : incoming.length - 1;
+        // 開いた直後のカーソル位置に基づくホバー選択を抑止するため、
+        // フラグと基点をリセットする。
+        mouseMovedRef.current = false;
+        mouseOriginRef.current = null;
         applyState({ open: true, items: incoming, selected });
       } else {
         const total = prev.items.length;
@@ -154,6 +165,18 @@ export function TabSwitcherOverlay() {
     <div
       className="fixed inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm"
       onClick={close}
+      onMouseMove={(e) => {
+        if (mouseMovedRef.current) return;
+        if (mouseOriginRef.current === null) {
+          mouseOriginRef.current = { x: e.clientX, y: e.clientY };
+          return;
+        }
+        const dx = e.clientX - mouseOriginRef.current.x;
+        const dy = e.clientY - mouseOriginRef.current.y;
+        if (dx * dx + dy * dy >= 25) {
+          mouseMovedRef.current = true;
+        }
+      }}
       style={{ pointerEvents: 'auto' }}
     >
       <div
@@ -191,6 +214,7 @@ export function TabSwitcherOverlay() {
                 )}
                 onClick={() => commitTabId(item.tabId)}
                 onMouseEnter={() => {
+                  if (!mouseMovedRef.current) return;
                   const cur = stateRef.current;
                   if (cur.open) applyState({ ...cur, selected: idx });
                 }}
