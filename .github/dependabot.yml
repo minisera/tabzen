@@ -1,45 +1,32 @@
 # Dependabot 設定 (https://docs.github.com/code-security/dependabot)
 # - npm (pnpm) と GitHub Actions の依存を週次でチェック
-# - minor/patch はグループ化、major は個別 PR (breaking change の可能性があるので個別レビュー)
 version: 2
 updates:
   - package-ecosystem: 'npm'
     directory: '/'
     schedule:
       interval: 'weekly'
-      day: 'monday'
-      time: '09:00'
+      day: 'tuesday'
+      time: '07:00'
       timezone: 'Asia/Tokyo'
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: 'chore'
       prefix-development: 'chore'
       include: 'scope'
-    groups:
-      prod-minor-patch:
-        dependency-type: 'production'
-        update-types:
-          - 'minor'
-          - 'patch'
-      dev-minor-patch:
-        dependency-type: 'development'
-        update-types:
-          - 'minor'
-          - 'patch'
 
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
       interval: 'weekly'
-      day: 'monday'
-      time: '09:00'
+      day: 'tuesday'
+      time: '07:00'
       timezone: 'Asia/Tokyo'
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: 'ci'
       include: 'scope'
-    groups:
-      actions-minor-patch:
-        update-types:
-          - 'minor'
-          - 'patch'
