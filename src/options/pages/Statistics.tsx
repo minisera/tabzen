@@ -7,7 +7,7 @@ import type { DayStat } from '@/shared/schema/daily-stats';
 import { sendMessage } from '@/shared/lib/runtime-client';
 
 const RANGE_DAYS = 30;
-const CHART_HEIGHT = 160;
+const CHART_HEIGHT = 140;
 
 interface State {
   items: DayStat[];
@@ -58,6 +58,7 @@ function BarChart({ series }: BarChartProps) {
       <svg
         viewBox={`0 0 100 ${CHART_HEIGHT}`}
         preserveAspectRatio="none"
+        style={{ height: CHART_HEIGHT }}
         className="w-full bg-secondary/30 rounded-md border border-border"
         role="img"
         aria-label="日次タブ処理数"
