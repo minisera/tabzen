@@ -66,12 +66,12 @@ describe('exclusionReason with domainRules', () => {
     expect(exclusionReason(meta({ url: 'https://youtube.com/' }), s, new Set())).toBe('none');
   });
 
-  it('respects allowlist precedence over domainRule', () => {
-    const s = settingsWith([{ pattern: 'github.com', mode: 'neverClose' }], {
-      allowlist: ['github.com'],
-    });
-    // allowlist が先にチェックされるため "allowlisted" が返る
-    expect(exclusionReason(meta({ url: 'https://github.com/' }), s, new Set())).toBe('allowlisted');
+  it('respects host-level exclusion (pinned/audible) over domainRule', () => {
+    const s = settingsWith([{ pattern: 'github.com', mode: 'neverClose' }]);
+    // ピン留めなど早い段階の判定が常に先 (allowlist 廃止後も不変)
+    expect(exclusionReason(meta({ url: 'https://github.com/', pinned: true }), s, new Set())).toBe(
+      'pinned',
+    );
   });
 });
 

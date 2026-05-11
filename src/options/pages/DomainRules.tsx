@@ -65,8 +65,8 @@ export function DomainRules() {
       <header>
         <h2 className="text-xl font-semibold mb-1">ドメインルール</h2>
         <p className="text-sm text-muted-foreground">
-          ドメインごとに自動処理の挙動を上書きします。「クローズしない」または独自の閾値を設定可能。
-          先頭から順にマッチした最初のルールが適用されます。
+          ドメインごとに自動処理の挙動を上書きします。「クローズしない」(自動クローズ・サスペンドの対象外)
+          または独自の閾値を設定可能。先頭から順にマッチした最初のルールが適用されます。
           <code className="mx-1 px-1 rounded bg-muted text-xs">*.example.com</code>
           でサブドメインも一致します。
         </p>

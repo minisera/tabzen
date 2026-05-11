@@ -12,7 +12,7 @@ A Chrome extension that quietly tidies up your tab clutter over time and provide
 - **Two-stage suspend → close** — Tabs are first discarded with `chrome.tabs.discard()` to free memory while keeping the UI; after a longer threshold they are fully closed.
 - **Switch to recent tabs with Ctrl+Q** — A centered overlay with thumbnails appears; hold Ctrl and tap Q repeatedly to step through, release Ctrl to confirm.
 - **Restore history** — Auto-closed tabs can be reopened with one click. Persists across browser restarts (default 100 entries, configurable).
-- **Smart exclusions** — Pinned tabs, audible tabs, the active tab, tabs with unsaved form input, and any domain on your allowlist are automatically excluded.
+- **Smart exclusions** — Pinned tabs, audible tabs, the active tab, tabs with unsaved form input, and any domain matched by a `neverClose` domain rule are automatically excluded.
 - **Duplicate detection** — Normalizes URLs (UTM stripping, trailing slash, fragments) to find duplicate tabs and closes all but the most recent.
 - **Confirmations on destructive actions** — Bulk close and duplicate close show a count and a confirmation dialog.
 
