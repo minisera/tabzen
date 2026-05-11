@@ -39,9 +39,12 @@ describe('exclusionReason', () => {
     expect(exclusionReason(meta({ tabId: 42 }), defaultSettings, new Set([42]))).toBe('active');
   });
 
-  it('returns "allowlisted" when URL matches allowlist', () => {
-    const settings = { ...defaultSettings, allowlist: ['example.com'] };
-    expect(exclusionReason(meta({}), settings, new Set())).toBe('allowlisted');
+  it('returns "domainRule" when URL matches a neverClose rule', () => {
+    const settings = {
+      ...defaultSettings,
+      domainRules: [{ pattern: 'example.com', mode: 'neverClose' as const }],
+    };
+    expect(exclusionReason(meta({}), settings, new Set())).toBe('domainRule');
   });
 
   it('returns "none" for an otherwise unexceptional tab', () => {

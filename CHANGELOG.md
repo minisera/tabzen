@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **除外ドメインをドメインルールに統合** — 「除外ドメイン (allowlist)」は「ドメインルール」の `クローズしない` モードと機能が同一だったため、設定 UI / スキーマから廃止し、ドメインルールに一本化した。既存の `settings.allowlist` は読み込み時に `domainRules` 先頭の `neverClose` ルールへ自動マイグレーションされるため、ユーザー操作は不要 (バックアップ JSON のインポート時も同じ経路を通る)。
+
 ### Fixed
 
 - **MRU タブ切替オーバーレイがページによって縮む / 位置ずれする問題** — ページ側 (`<html>` 等) に `transform` / `filter` / `contain` 等が当たっていると、`position: fixed` の containing block が viewport から外れてしまい、オーバーレイが小さく表示される / 位置がずれることがあった (Notion / Linear / 一部 Next.js サイト等)。Content Script のホスト要素を `popover="manual"` + `showPopover()` で **Top Layer** に載せ、ページ側の CSS から完全に独立させて常に viewport 全体にフィットするようにした。`showPopover` 非対応の古い Chrome (<114) は従来通りの動作にフォールバック。

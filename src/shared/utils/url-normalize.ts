@@ -29,16 +29,6 @@ export function matchDomain(host: string, pattern: string): boolean {
   return host === pattern;
 }
 
-export function isAllowlisted(url: string, patterns: string[]): boolean {
-  if (patterns.length === 0) return false;
-  try {
-    const host = new URL(url).hostname;
-    return patterns.some((p) => matchDomain(host, p));
-  } catch {
-    return false;
-  }
-}
-
 /** URL に最初にマッチした domainRule を返す。マッチしなければ null。 */
 export function findDomainRule(url: string, rules: DomainRule[]): DomainRule | null {
   if (rules.length === 0) return null;

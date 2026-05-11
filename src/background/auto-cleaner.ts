@@ -6,17 +6,10 @@ import {
   setRestoreHistory,
   setTabMeta,
 } from '@/shared/storage/local-state';
-import { findDomainRule, isAllowlisted } from '@/shared/utils/url-normalize';
+import { findDomainRule } from '@/shared/utils/url-normalize';
 import { recordDailyStat } from '@/shared/storage/daily-stats';
 
-export type ExclusionReason =
-  | 'pinned'
-  | 'audible'
-  | 'active'
-  | 'formDirty'
-  | 'allowlisted'
-  | 'domainRule'
-  | 'none';
+export type ExclusionReason = 'pinned' | 'audible' | 'active' | 'formDirty' | 'domainRule' | 'none';
 
 export function exclusionReason(
   meta: TabMeta,
@@ -27,7 +20,6 @@ export function exclusionReason(
   if (meta.audible) return 'audible';
   if (meta.formDirty) return 'formDirty';
   if (activeTabIds.has(meta.tabId)) return 'active';
-  if (isAllowlisted(meta.url, settings.allowlist)) return 'allowlisted';
   const rule = findDomainRule(meta.url, settings.domainRules);
   if (rule?.mode === 'neverClose') return 'domainRule';
   return 'none';

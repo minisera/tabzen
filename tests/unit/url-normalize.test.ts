@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isAllowlisted, matchDomain, normalizeUrl } from '@/shared/utils/url-normalize';
+import { matchDomain, normalizeUrl } from '@/shared/utils/url-normalize';
 
 const OPTS = { stripTrailingSlash: true, stripUtm: true, stripFragment: false };
 
@@ -50,22 +50,5 @@ describe('matchDomain', () => {
     expect(matchDomain('bar.foo.example.com', '*.example.com')).toBe(true);
     expect(matchDomain('example.com', '*.example.com')).toBe(true);
     expect(matchDomain('notexample.com', '*.example.com')).toBe(false);
-  });
-});
-
-describe('isAllowlisted', () => {
-  it('returns false when patterns is empty', () => {
-    expect(isAllowlisted('https://example.com', [])).toBe(false);
-  });
-
-  it('returns true when host matches any of the patterns', () => {
-    const patterns = ['github.com', '*.notion.so'];
-    expect(isAllowlisted('https://github.com/foo', patterns)).toBe(true);
-    expect(isAllowlisted('https://api.notion.so/v1', patterns)).toBe(true);
-    expect(isAllowlisted('https://example.com', patterns)).toBe(false);
-  });
-
-  it('returns false for unparseable URL', () => {
-    expect(isAllowlisted('about:blank', ['example.com'])).toBe(false);
   });
 });

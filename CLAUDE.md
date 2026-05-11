@@ -57,7 +57,7 @@ All storage access goes through helpers in `src/shared/storage/`; do not call `c
 
 `auto-cleaner.ts` runs every minute via `chrome.alarms` (`tabzen-scan`). Two-stage flow: tabs idle past `suspendAfterMinutes` get `chrome.tabs.discard()`'d; tabs past `closeAfterMinutes` get pushed to `restoreHistory` then `chrome.tabs.remove()`'d. `closeAfterMinutes` must be `>` `suspendAfterMinutes` (Zod-enforced).
 
-`exclusionReason()` is the single decision point for "should this tab be touched" — pinned, audible, active-in-its-window, formDirty, or allowlisted (domain match with `*.example.com` wildcard support). Reuse it; don't re-implement the rules.
+`exclusionReason()` is the single decision point for "should this tab be touched" — pinned, audible, active-in-its-window, formDirty, or matched by a `domainRules` entry with `mode: 'neverClose'` (domain match with `*.example.com` wildcard support). Reuse it; don't re-implement the rules. The legacy `settings.allowlist` field was folded into `domainRules` and is auto-migrated by `settingsSchema`'s `preprocess`.
 
 `recordDailyStat()` is called from auto-cleaner / duplicate-finder after any close/suspend so the Statistics page can render history.
 

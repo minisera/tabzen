@@ -109,7 +109,7 @@ export function Backup() {
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          書き出されるのは設定 (閾値・除外ドメイン・MRU表示数など) のみ。バックアップ
+          書き出されるのは設定 (閾値・ドメインルール・MRU表示数など) のみ。バックアップ
           フォーマットバージョン:{' '}
           <code className="px-1 rounded bg-muted text-[10px]">v{BACKUP_VERSION}</code>
         </p>
