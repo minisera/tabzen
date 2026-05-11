@@ -7,20 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-05-11
+
 ### Changed
 
 - **除外ドメインをドメインルールに統合** — 「除外ドメイン (allowlist)」は「ドメインルール」の `クローズしない` モードと機能が同一だったため、設定 UI / スキーマから廃止し、ドメインルールに一本化した。既存の `settings.allowlist` は読み込み時に `domainRules` 先頭の `neverClose` ルールへ自動マイグレーションされるため、ユーザー操作は不要 (バックアップ JSON のインポート時も同じ経路を通る)。
+- **Popup stats labels** — `タブ数` / `クローズ候補` / `サスペンド済` の意味が一目で伝わらないため、各セルにホバー (またはキーボードフォーカス) で説明を表示するツールチップを追加した。
+- **Options > Shortcuts** — デフォルトキー未設定のショートカット (`現在のウィンドウの全タブをクローズ` と `MRU タブ切替 (前へ)`) について、コマンド説明文に括弧書きで埋めていた理由を、キー側の `未設定` バッジに付くツールチップへ移動した。本文がすっきりし、未設定の理由 (危険性 / Chrome のキー数上限) もホバーで確認できる。
 
 ### Fixed
 
 - **MRU タブ切替オーバーレイがページによって縮む / 位置ずれする問題** — ページ側 (`<html>` 等) に `transform` / `filter` / `contain` 等が当たっていると、`position: fixed` の containing block が viewport から外れてしまい、オーバーレイが小さく表示される / 位置がずれることがあった (Notion / Linear / 一部 Next.js サイト等)。Content Script のホスト要素を `popover="manual"` + `showPopover()` で **Top Layer** に載せ、ページ側の CSS から完全に独立させて常に viewport 全体にフィットするようにした。`showPopover` 非対応の古い Chrome (<114) は従来通りの動作にフォールバック。
 - **MRU 履歴が 1〜2 件しかない時に切替オーバーレイが極端に小さくなる問題** — カードに `min-h-[280px]` を追加し、件数が少なくても一定の高さを保つようにした。併せて狭い viewport で 720px がはみ出さないよう `max-w-[92vw]` も追加 (検索パレットと同じガード)。
 - **YouTube などページが `<html>` の `font-size` を変更しているサイトでオーバーレイが縮む問題** — Shadow DOM 内でも CSS の `rem` は document root (`<html>`) の `font-size` を参照する仕様のため、YouTube (`<html> { font-size: 10px }`) では Tailwind v4 の `--spacing` / `--text-*` / `--radius-*` が rem 由来で 62.5% に縮んでいた。`:host` セレクタ (Shadow DOM 限定) でこれらを px に固定し、ページ font-size に依存しないようにした。popup / options 側は `:host` にマッチする要素が無いため影響なし。
+- **MRU オーバーレイ表示直後のホバー誤選択** — Ctrl+Q でオーバーレイを開いた瞬間、画面中央のカーソル直下にあるタブが `mouseenter` で即座に選択され、キーボードで決めた選択 (selected = 1) が上書きされる問題があった (Chrome は静止カーソル下に DOM が出現したときも `mouseover/mouseenter` を発火する)。VS Code コマンドパレットと同じパターンで、ユーザーが意図して 5px 以上マウスを動かしたあとでのみホバー選択が有効になるようにした。
+- **統計グラフが縦に引き伸ばされる問題** — オプション画面の「統計」タブで、棒グラフ SVG が横幅に応じて縦方向にも伸び、ウィンドウを広げると全体が見えなくなっていた。`<svg>` の表示高さを CSS で固定し、`preserveAspectRatio="none"` でも縦横比に引きずられないようにした。合わせて高さを 160px → 140px に下げ、全体をややコンパクトに。
 
-### Changed
+### Internal
 
-- **Popup stats labels** — `タブ数` / `クローズ候補` / `サスペンド済` の意味が一目で伝わらないため、各セルにホバー (またはキーボードフォーカス) で説明を表示するツールチップを追加した。
-- **Options > Shortcuts** — デフォルトキー未設定のショートカット (`現在のウィンドウの全タブをクローズ` と `MRU タブ切替 (前へ)`) について、コマンド説明文に括弧書きで埋めていた理由を、キー側の `未設定` バッジに付くツールチップへ移動した。本文がすっきりし、未設定の理由 (危険性 / Chrome のキー数上限) もホバーで確認できる。
+- **Supply-chain hardening** — `.npmrc` の `minimum-release-age` を 3 日 → 7 日に延長し、`ignore-scripts=true` (依存パッケージの postinstall を全面 block) と `trust-policy=no-downgrade` (downgrade attack 阻止) を追加。Dependabot 側も `cooldown.default-days=7` を追加し、公開直後の version への自動 PR を抑止。`pnpm.onlyBuiltDependencies` 経由で esbuild は引き続きビルドされるため、build への影響はない。
 
 ## [1.0.2] - 2026-04-25
 
@@ -78,7 +83,8 @@ Initial public release submitted to the Chrome Web Store.
 - **Popup** — Tab stats, quick actions (close inactive / close duplicates / suspend all), recent restore-history (5 entries).
 - **Privacy** — All data is stored locally in `chrome.storage`. No network requests are made and no personal data is collected.
 
-[Unreleased]: https://github.com/minisera/tabzen/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/minisera/tabzen/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/minisera/tabzen/releases/tag/v1.0.3
 [1.0.2]: https://github.com/minisera/tabzen/releases/tag/v1.0.2
 [1.0.1]: https://github.com/minisera/tabzen/releases/tag/v1.0.1
 [1.0.0]: https://github.com/minisera/tabzen/releases/tag/v1.0.0
