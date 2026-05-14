@@ -36,6 +36,14 @@ export function TabSwitcherOverlay() {
   // 無視するためのフラグ。閾値 (5px) 未満の動きは誤反応とみなす。
   const mouseMovedRef = useRef(false);
   const mouseOriginRef = useRef<{ x: number; y: number } | null>(null);
+  // 修飾キー (Ctrl/Alt/Meta) の押下状態を継続的に追跡する。
+  // SW → CS の chrome.tabs.sendMessage は IPC で数 ms〜数十 ms の遅延があり、
+  // その間にユーザーが Ctrl を離してしまうと、onKeyUp は stateRef.open=false で
+  // 早期 return して逃され、その後遅れて到着した onTick でオーバーレイを開いても
+  // 閉じる手段 (modifier release) が来ない → 永遠に残る不具合があった。
+  // 修飾キーの状態を別途持っておくことで、onTick 時点で「既に離されている」
+  // 状態を検出し、オーバーレイを開かず即 commit する判断材料にする。
+  const modifierDownRef = useRef<Set<string>>(new Set());
 
   const applyState = useCallback((next: State) => {
     stateRef.current = next;
@@ -86,6 +94,15 @@ export function TabSwitcherOverlay() {
       if (!prev.open) {
         if (incoming.length < 2) return;
         const selected = direction === 'next' ? 1 : incoming.length - 1;
+        // race condition の保険: SW→CS の IPC 遅延中にユーザーが既に
+        // 修飾キーを離してしまっていた場合、オーバーレイを開いても閉じる
+        // 手段が無くなる。modifier が押されていない状態でメッセージが
+        // 届いたら、即座に対象タブへ切り替えて終了する (タップでの cycle 動作)。
+        if (modifierDownRef.current.size === 0) {
+          const target = incoming[selected];
+          if (target) sendMessageVoid({ kind: 'switchToTab', tabId: target.tabId });
+          return;
+        }
         // 開いた直後のカーソル位置に基づくホバー選択を抑止するため、
         // フラグと基点をリセットする。
         mouseMovedRef.current = false;
@@ -140,19 +157,39 @@ export function TabSwitcherOverlay() {
       }
     };
 
+    // 修飾キーの押下状態を継続的に追跡する。state.open に依存せず常に動かす
+    // 必要があるため、onKeyDown/onKeyUp とは別のリスナーで処理する。
+    const onAnyKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') {
+        modifierDownRef.current.add(e.key);
+      }
+    };
+    const onAnyKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') {
+        modifierDownRef.current.delete(e.key);
+      }
+    };
+
     // ウィンドウから blur したら現在選択中のタブを確定する。
     // chrome.commands の Ctrl+Q (Mac) などはキーリリース時に keyup が
     // 届く前に blur が発火するケースがあるため、close ではなく commit。
+    // フォーカスを失うと keyup を取り逃す可能性があるので、修飾キー状態も
+    // 一旦クリアして、次に開く時に確実に「押されていない」と判定できるようにする。
     const onBlur = () => {
+      modifierDownRef.current.clear();
       if (stateRef.current.open) commitCurrent();
     };
 
     window.addEventListener(EVENT_TAB_SWITCH, onTick);
+    document.addEventListener('keydown', onAnyKeyDown, true);
+    document.addEventListener('keyup', onAnyKeyUp, true);
     document.addEventListener('keydown', onKeyDown, true);
     document.addEventListener('keyup', onKeyUp, true);
     window.addEventListener('blur', onBlur);
     return () => {
       window.removeEventListener(EVENT_TAB_SWITCH, onTick);
+      document.removeEventListener('keydown', onAnyKeyDown, true);
+      document.removeEventListener('keyup', onAnyKeyUp, true);
       document.removeEventListener('keydown', onKeyDown, true);
       document.removeEventListener('keyup', onKeyUp, true);
       window.removeEventListener('blur', onBlur);
