@@ -4,14 +4,35 @@ import type { TabSwitchItem } from '@/shared/types';
 import { relativeFromNow } from '@/shared/utils/time';
 import { cn } from '@/shared/lib/utils';
 
+type TabSwitcherLayout = 'vertical' | 'horizontal';
+
 interface State {
   open: boolean;
   items: TabSwitchItem[];
   selected: number;
+  layout: TabSwitcherLayout;
+  wrap: boolean;
+  columns: number;
 }
 
-const INITIAL: State = { open: false, items: [], selected: 0 };
+const INITIAL: State = {
+  open: false,
+  items: [],
+  selected: 0,
+  layout: 'vertical',
+  wrap: false,
+  columns: 4,
+};
 const EVENT_TAB_SWITCH = 'tabzen:tab-switch';
+
+// 横レイアウト (折り返しあり) のカード寸法。コンテナ幅を「ちょうど N 列」に
+// 固定することで flex-wrap が指定列数で折り返す。w-[180px] / gap-3 / p-4 に対応。
+const H_CARD_W = 180;
+const H_GAP = 12;
+const H_PAD = 16;
+function horizontalGridWidth(columns: number): number {
+  return H_CARD_W * columns + H_GAP * (columns - 1) + H_PAD * 2;
+}
 
 function safeHost(url: string): string {
   try {
@@ -19,6 +40,71 @@ function safeHost(url: string): string {
   } catch {
     return url;
   }
+}
+
+// 縦レイアウト: 横長カードを縦に積む (従来動作)。サムネイル左・テキスト右。
+function VerticalItemContent({ item }: { item: TabSwitchItem }) {
+  return (
+    <>
+      {item.thumbnail ? (
+        <div className="relative w-[112px] h-[70px] rounded-sm bg-muted shrink-0 overflow-hidden border border-border">
+          <img src={item.thumbnail} className="w-full h-full object-cover" alt="" />
+          {item.favIconUrl && (
+            <img
+              src={item.favIconUrl}
+              className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded-sm bg-white/80 p-0.5"
+              alt=""
+            />
+          )}
+        </div>
+      ) : (
+        <div className="w-[112px] h-[70px] rounded-sm bg-muted shrink-0 flex items-center justify-center">
+          {item.favIconUrl ? (
+            <img src={item.favIconUrl} className="w-6 h-6" alt="" />
+          ) : (
+            <div className="w-6 h-6 rounded-sm bg-card" />
+          )}
+        </div>
+      )}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm truncate font-medium">{item.title || item.url}</p>
+        <p className="text-xs text-muted-foreground truncate">{safeHost(item.url)}</p>
+        <p className="text-xs text-muted-foreground">{relativeFromNow(item.lastActiveAt)}</p>
+      </div>
+    </>
+  );
+}
+
+// 横レイアウト: サムネイル上・タイトル下のカード (macOS Cmd+Tab 風)。
+function HorizontalItemContent({ item }: { item: TabSwitchItem }) {
+  return (
+    <>
+      {item.thumbnail ? (
+        <div className="relative w-full h-[130px] bg-muted overflow-hidden border-b border-border">
+          <img src={item.thumbnail} className="w-full h-full object-cover" alt="" />
+          {item.favIconUrl && (
+            <img
+              src={item.favIconUrl}
+              className="absolute bottom-1 right-1 w-4 h-4 rounded-sm bg-white/80 p-0.5"
+              alt=""
+            />
+          )}
+        </div>
+      ) : (
+        <div className="w-full h-[130px] bg-muted flex items-center justify-center border-b border-border">
+          {item.favIconUrl ? (
+            <img src={item.favIconUrl} className="w-8 h-8" alt="" />
+          ) : (
+            <div className="w-8 h-8 rounded-sm bg-card" />
+          )}
+        </div>
+      )}
+      <div className="p-2 w-full min-w-0">
+        <p className="text-sm truncate font-medium">{item.title || item.url}</p>
+        <p className="text-xs text-muted-foreground truncate">{safeHost(item.url)}</p>
+      </div>
+    </>
+  );
 }
 
 export function TabSwitcherOverlay() {
@@ -44,6 +130,8 @@ export function TabSwitcherOverlay() {
   // 修飾キーの状態を別途持っておくことで、onTick 時点で「既に離されている」
   // 状態を検出し、オーバーレイを開かず即 commit する判断材料にする。
   const modifierDownRef = useRef<Set<string>>(new Set());
+  // 選択中の項目への参照。選択移動時にスクロール追従させるために使う。
+  const selectedItemRef = useRef<HTMLButtonElement | null>(null);
 
   const applyState = useCallback((next: State) => {
     stateRef.current = next;
@@ -90,11 +178,17 @@ export function TabSwitcherOverlay() {
           items?: TabSwitchItem[];
           direction?: 'next' | 'prev';
           assumeModifierDown?: boolean;
+          layout?: TabSwitcherLayout;
+          wrap?: boolean;
+          columns?: number;
         }>
       ).detail;
       const incoming = detail?.items ?? [];
       const direction = detail?.direction ?? 'next';
       const assumeModifierDown = detail?.assumeModifierDown ?? false;
+      const layout = detail?.layout ?? 'vertical';
+      const wrap = detail?.wrap ?? false;
+      const columns = detail?.columns ?? 4;
 
       const prev = stateRef.current;
       if (!prev.open) {
@@ -119,7 +213,7 @@ export function TabSwitcherOverlay() {
         // フラグと基点をリセットする。
         mouseMovedRef.current = false;
         mouseOriginRef.current = null;
-        applyState({ open: true, items: incoming, selected });
+        applyState({ open: true, items: incoming, selected, layout, wrap, columns });
       } else {
         const total = prev.items.length;
         if (total === 0) return;
@@ -208,7 +302,22 @@ export function TabSwitcherOverlay() {
     };
   }, [close, commitCurrent, moveBy, applyState]);
 
+  // 選択が移動したら、その項目が見えるようスクロール追従する。
+  // 横一列 (折り返しなし) では選択が右へ進むと画面外に出るため必須。
+  // 縦リストや折り返しグリッドでも項目が多い時に追従する。
+  useEffect(() => {
+    if (!state.open) return;
+    selectedItemRef.current?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }, [state.open, state.selected]);
+
   if (!state.open) return null;
+
+  // 折り返しグリッドのときだけコンテナ幅を列数ぴったりに固定する。
+  const horizontal = state.layout === 'horizontal';
+  const gridMode = horizontal && state.wrap;
+  const cardStyle = gridMode
+    ? { width: horizontalGridWidth(state.columns), maxWidth: '92vw' }
+    : undefined;
 
   return (
     <div
@@ -234,7 +343,16 @@ export function TabSwitcherOverlay() {
         // min-h: MRU 履歴が 1〜2 件しかない時にカードがヘッダー + 数十 px
         // しか無い極小サイズになるのを防ぐ (空の余白で良いのでスケールを
         // 一定以上に保つ)。
-        className="w-[720px] max-w-[92vw] min-h-[280px] max-h-[92vh] bg-card text-card-foreground rounded-xl shadow-2xl border border-border overflow-hidden flex flex-col"
+        className={cn(
+          'min-h-[280px] max-h-[92vh] bg-card text-card-foreground rounded-xl shadow-2xl border border-border overflow-hidden flex flex-col',
+          gridMode
+            ? 'max-w-[92vw]'
+            : horizontal
+              ? // 折り返しなし (全件均等表示) は広めに取って各カードを大きく。
+                'w-[1200px] max-w-[92vw]'
+              : 'w-[720px] max-w-[92vw]',
+        )}
+        style={cardStyle}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-4 py-2 border-b border-border flex items-center justify-between text-xs text-muted-foreground shrink-0">
@@ -249,55 +367,67 @@ export function TabSwitcherOverlay() {
             <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px]">Esc</kbd>
           </span>
         </div>
-        <ul className="overflow-y-auto">
-          {state.items.map((item, idx) => (
-            <li key={item.tabId}>
-              <button
-                type="button"
+        <ul
+          data-testid="tab-switcher-list"
+          data-layout={state.layout}
+          data-wrap={String(state.wrap)}
+          data-columns={state.columns}
+          className={cn(
+            state.layout === 'horizontal'
+              ? state.wrap
+                ? 'flex flex-wrap gap-3 justify-center content-start p-4 overflow-y-auto'
+                : 'flex flex-nowrap gap-3 p-4'
+              : 'overflow-y-auto',
+          )}
+        >
+          {state.items.map((item, idx) => {
+            const active = idx === state.selected;
+            return (
+              <li
+                key={item.tabId}
                 className={cn(
-                  'w-full px-4 py-2 flex items-center gap-3 text-left transition-colors',
-                  'border-l-4',
-                  idx === state.selected
-                    ? 'bg-primary/15 border-primary'
-                    : 'border-transparent hover:bg-accent/50',
+                  state.layout === 'horizontal' &&
+                    // 折り返しあり: 160px 固定でグリッド。折り返しなし: 均等幅で
+                    // 全件を 1 行に収める (スクロールさせない)。
+                    (state.wrap ? 'shrink-0' : 'flex-1 min-w-0'),
                 )}
-                onClick={() => commitTabId(item.tabId)}
-                onMouseEnter={() => {
-                  if (!mouseMovedRef.current) return;
-                  const cur = stateRef.current;
-                  if (cur.open) applyState({ ...cur, selected: idx });
-                }}
               >
-                {item.thumbnail ? (
-                  <div className="relative w-[112px] h-[70px] rounded-sm bg-muted shrink-0 overflow-hidden border border-border">
-                    <img src={item.thumbnail} className="w-full h-full object-cover" alt="" />
-                    {item.favIconUrl && (
-                      <img
-                        src={item.favIconUrl}
-                        className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded-sm bg-white/80 p-0.5"
-                        alt=""
-                      />
-                    )}
-                  </div>
-                ) : (
-                  <div className="w-[112px] h-[70px] rounded-sm bg-muted shrink-0 flex items-center justify-center">
-                    {item.favIconUrl ? (
-                      <img src={item.favIconUrl} className="w-6 h-6" alt="" />
-                    ) : (
-                      <div className="w-6 h-6 rounded-sm bg-card" />
-                    )}
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate font-medium">{item.title || item.url}</p>
-                  <p className="text-xs text-muted-foreground truncate">{safeHost(item.url)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {relativeFromNow(item.lastActiveAt)}
-                  </p>
-                </div>
-              </button>
-            </li>
-          ))}
+                <button
+                  type="button"
+                  ref={active ? selectedItemRef : undefined}
+                  className={cn(
+                    'text-left transition-colors',
+                    state.layout === 'horizontal'
+                      ? cn(
+                          state.wrap ? 'w-[180px]' : 'w-full',
+                          'flex flex-col rounded-lg overflow-hidden border-2',
+                          active
+                            ? 'bg-primary/15 border-primary'
+                            : 'border-transparent hover:bg-accent/50',
+                        )
+                      : cn(
+                          'w-full px-4 py-2 flex items-center gap-3 border-l-4',
+                          active
+                            ? 'bg-primary/15 border-primary'
+                            : 'border-transparent hover:bg-accent/50',
+                        ),
+                  )}
+                  onClick={() => commitTabId(item.tabId)}
+                  onMouseEnter={() => {
+                    if (!mouseMovedRef.current) return;
+                    const cur = stateRef.current;
+                    if (cur.open) applyState({ ...cur, selected: idx });
+                  }}
+                >
+                  {state.layout === 'horizontal' ? (
+                    <HorizontalItemContent item={item} />
+                  ) : (
+                    <VerticalItemContent item={item} />
+                  )}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>
