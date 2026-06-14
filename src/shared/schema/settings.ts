@@ -78,6 +78,16 @@ const settingsObjectSchema = z.object({
   restoreHistoryLimit: z.number().int().min(10).max(1000).default(100),
   // Ctrl+Q オーバーレイに表示する MRU タブ数
   tabSwitcherMax: z.number().int().min(2).max(10).default(5),
+  // Ctrl+Q オーバーレイのレイアウト。
+  // vertical   : 横長カードを縦に積む (デフォルト・従来動作)
+  // horizontal : サムネイル上・タイトル下のカードを横並び (macOS Cmd+Tab 風)
+  tabSwitcherLayout: z.enum(['vertical', 'horizontal']).default('vertical'),
+  // 横レイアウト時にカードを折り返すか。
+  // false : 横一列に並べてはみ出し分は横スクロール (デフォルト)
+  // true  : tabSwitcherColumns 列で折り返してグリッド表示
+  tabSwitcherWrap: z.boolean().default(false),
+  // 横レイアウトで折り返す場合の 1 行あたり列数。
+  tabSwitcherColumns: z.number().int().min(2).max(8).default(4),
   normalizeUrl: normalizeUrlOptionsSchema.default({
     stripTrailingSlash: true,
     stripUtm: true,

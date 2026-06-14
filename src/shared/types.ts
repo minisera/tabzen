@@ -60,6 +60,23 @@ export type ContentRequest =
       kind: 'tabSwitchCycle';
       direction: 'next' | 'prev';
       items: TabSwitchItem[];
+      /**
+       * SW が chrome.commands 発火を起点に送信したことを示すヒント。
+       * chrome.commands は修飾キー込みのショートカットでのみ発火するため、
+       * このフラグが立っている = ユーザーは少なくとも発火時点では修飾キーを
+       * 押下していた、と CS 側で見なせる。アドレスバーフォーカス中など
+       * Web ページ側で keydown を捕捉できない状況でも Overlay を開ける。
+       */
+      assumeModifierDown?: boolean;
+      /**
+       * オーバーレイのレイアウト (settings.tabSwitcherLayout)。SW が設定を
+       * 読んで付与する。省略時は CS 側で 'vertical' にフォールバック。
+       */
+      layout?: Settings['tabSwitcherLayout'];
+      /** 横レイアウト時に折り返すか (settings.tabSwitcherWrap)。 */
+      wrap?: Settings['tabSwitcherWrap'];
+      /** 横レイアウト折り返し時の 1 行列数 (settings.tabSwitcherColumns)。 */
+      columns?: Settings['tabSwitcherColumns'];
     }
   | {
       kind: 'openSearchPalette';
