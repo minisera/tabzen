@@ -116,6 +116,11 @@ async function handleTabSwitchFallback(
         kind: 'tabSwitchCycle',
         direction,
         items,
+        // chrome.commands 起源 = ユーザーが修飾キー込みのショートカットを
+        // 押下した結果として届くメッセージなので、CS 側で keydown を
+        // 取り損ねていても (例: アドレスバーフォーカス中) 修飾キーが
+        // 押されていた前提で Overlay を開かせる。
+        assumeModifierDown: true,
       } satisfies ContentRequest);
       console.debug('[Tab Zen] Ctrl+Q: overlay requested on tab', active.id);
       return;

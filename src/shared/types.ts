@@ -60,6 +60,14 @@ export type ContentRequest =
       kind: 'tabSwitchCycle';
       direction: 'next' | 'prev';
       items: TabSwitchItem[];
+      /**
+       * SW が chrome.commands 発火を起点に送信したことを示すヒント。
+       * chrome.commands は修飾キー込みのショートカットでのみ発火するため、
+       * このフラグが立っている = ユーザーは少なくとも発火時点では修飾キーを
+       * 押下していた、と CS 側で見なせる。アドレスバーフォーカス中など
+       * Web ページ側で keydown を捕捉できない状況でも Overlay を開ける。
+       */
+      assumeModifierDown?: boolean;
     }
   | {
       kind: 'openSearchPalette';

@@ -85,10 +85,16 @@ export function TabSwitcherOverlay() {
 
   useEffect(() => {
     const onTick = (ev: Event) => {
-      const detail = (ev as CustomEvent<{ items?: TabSwitchItem[]; direction?: 'next' | 'prev' }>)
-        .detail;
+      const detail = (
+        ev as CustomEvent<{
+          items?: TabSwitchItem[];
+          direction?: 'next' | 'prev';
+          assumeModifierDown?: boolean;
+        }>
+      ).detail;
       const incoming = detail?.items ?? [];
       const direction = detail?.direction ?? 'next';
+      const assumeModifierDown = detail?.assumeModifierDown ?? false;
 
       const prev = stateRef.current;
       if (!prev.open) {
@@ -98,7 +104,13 @@ export function TabSwitcherOverlay() {
         // 修飾キーを離してしまっていた場合、オーバーレイを開いても閉じる
         // 手段が無くなる。modifier が押されていない状態でメッセージが
         // 届いたら、即座に対象タブへ切り替えて終了する (タップでの cycle 動作)。
-        if (modifierDownRef.current.size === 0) {
+        //
+        // ただし assumeModifierDown=true (SW が chrome.commands 起点で
+        // 送信したヒント) の場合は、アドレスバーフォーカス中など Web ページが
+        // keydown を取得できないだけで実際は修飾キーが押されている可能性が
+        // 高い。この場合は Overlay を開く。閉じる手段はマウスクリック/
+        // Esc (アドレスバーを閉じてから再度 Esc) で確保する。
+        if (modifierDownRef.current.size === 0 && !assumeModifierDown) {
           const target = incoming[selected];
           if (target) sendMessageVoid({ kind: 'switchToTab', tabId: target.tabId });
           return;

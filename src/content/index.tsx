@@ -124,7 +124,11 @@ const messageListener = (
   if (raw.kind === 'tabSwitchCycle') {
     window.dispatchEvent(
       new CustomEvent(EVENT_TAB_SWITCH, {
-        detail: { items: raw.items, direction: raw.direction },
+        detail: {
+          items: raw.items,
+          direction: raw.direction,
+          assumeModifierDown: raw.assumeModifierDown,
+        },
       }),
     );
     sendResponse({ ok: true });
