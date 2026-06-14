@@ -74,6 +74,20 @@ describe('settingsSchema', () => {
     expect(tooMany.success).toBe(false);
   });
 
+  it('defaults insertLinkedTabsAfterActive to true', () => {
+    expect(defaultSettings.insertLinkedTabsAfterActive).toBe(true);
+  });
+
+  it('accepts insertLinkedTabsAfterActive=false', () => {
+    const res = settingsSchema.safeParse({
+      ...defaultSettings,
+      insertLinkedTabsAfterActive: false,
+    });
+    expect(res.success).toBe(true);
+    if (!res.success) return;
+    expect(res.data.insertLinkedTabsAfterActive).toBe(false);
+  });
+
   it('enforces restore history bounds', () => {
     const tooFew = settingsSchema.safeParse({ ...defaultSettings, restoreHistoryLimit: 1 });
     const tooMany = settingsSchema.safeParse({ ...defaultSettings, restoreHistoryLimit: 5000 });
