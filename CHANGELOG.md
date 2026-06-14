@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-14
+
+### Added
+
+- **MRU タブスイッチャーの横レイアウト** — Ctrl+Q のオーバーレイを、サムネイル上・タイトル下のカードで横並び表示する「横レイアウト」を追加した (macOS Cmd+Tab 風)。折り返しの ON/OFF と 1 行あたりの列数 (2〜8) を選べ、オプション画面 > 一般 にライブプレビューを用意。従来の縦リストとはトグルで切り替えられる (デフォルトは縦)。
+
+### Fixed
+
+- **アドレスバーにフォーカスがある状態で MRU オーバーレイが出ない / 消えない問題** — アドレスバー (omnibox) にフォーカスがあると Web ページ側は system キーボードフォーカスを持たず (`document.hasFocus() === false`)、修飾キーの keydown / keyup が Content Script に届かない。このためオーバーレイが表示されない、または表示されても Ctrl を離して閉じられず (commit されないのでタブ移動も起きない) ことがあった。`chrome.commands` 起点のメッセージでは修飾キー押下を前提にオーバーレイを表示し (`assumeModifierDown`)、さらにページがフォーカスを持てない間 (`document.hasFocus() === false`) は一定時間 (約 1 秒) 操作が無ければ現在の選択で自動確定して閉じる time-based フォールバックを追加した (SW 側 `tickDirectCycle` と同じ発想)。ページにフォーカスがある通常時は従来どおり keyup で即確定し、タイマーは張らない。
+
 ## [1.0.3] - 2026-05-11
 
 ### Changed
