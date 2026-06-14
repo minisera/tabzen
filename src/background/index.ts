@@ -121,6 +121,9 @@ async function handleTabSwitchFallback(
         // 取り損ねていても (例: アドレスバーフォーカス中) 修飾キーが
         // 押されていた前提で Overlay を開かせる。
         assumeModifierDown: true,
+        layout: settings.tabSwitcherLayout,
+        wrap: settings.tabSwitcherWrap,
+        columns: settings.tabSwitcherColumns,
       } satisfies ContentRequest);
       console.debug('[Tab Zen] Ctrl+Q: overlay requested on tab', active.id);
       return;

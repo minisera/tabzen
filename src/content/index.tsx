@@ -128,6 +128,9 @@ const messageListener = (
           items: raw.items,
           direction: raw.direction,
           assumeModifierDown: raw.assumeModifierDown,
+          layout: raw.layout,
+          wrap: raw.wrap,
+          columns: raw.columns,
         },
       }),
     );

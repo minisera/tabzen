@@ -31,6 +31,49 @@ describe('settingsSchema', () => {
     expect(res.success).toBe(true);
   });
 
+  it('defaults tabSwitcherLayout to vertical', () => {
+    expect(defaultSettings.tabSwitcherLayout).toBe('vertical');
+  });
+
+  it('accepts horizontal tabSwitcherLayout', () => {
+    const res = settingsSchema.safeParse({ ...defaultSettings, tabSwitcherLayout: 'horizontal' });
+    expect(res.success).toBe(true);
+    if (!res.success) return;
+    expect(res.data.tabSwitcherLayout).toBe('horizontal');
+  });
+
+  it('rejects an unknown tabSwitcherLayout value', () => {
+    const res = settingsSchema.safeParse({ ...defaultSettings, tabSwitcherLayout: 'diagonal' });
+    expect(res.success).toBe(false);
+  });
+
+  it('defaults tabSwitcherWrap to false (single-row by default)', () => {
+    expect(defaultSettings.tabSwitcherWrap).toBe(false);
+  });
+
+  it('defaults tabSwitcherColumns to 4', () => {
+    expect(defaultSettings.tabSwitcherColumns).toBe(4);
+  });
+
+  it('accepts tabSwitcherWrap and tabSwitcherColumns', () => {
+    const res = settingsSchema.safeParse({
+      ...defaultSettings,
+      tabSwitcherWrap: true,
+      tabSwitcherColumns: 6,
+    });
+    expect(res.success).toBe(true);
+    if (!res.success) return;
+    expect(res.data.tabSwitcherWrap).toBe(true);
+    expect(res.data.tabSwitcherColumns).toBe(6);
+  });
+
+  it('enforces tabSwitcherColumns bounds (2-8)', () => {
+    const tooFew = settingsSchema.safeParse({ ...defaultSettings, tabSwitcherColumns: 1 });
+    const tooMany = settingsSchema.safeParse({ ...defaultSettings, tabSwitcherColumns: 9 });
+    expect(tooFew.success).toBe(false);
+    expect(tooMany.success).toBe(false);
+  });
+
   it('enforces restore history bounds', () => {
     const tooFew = settingsSchema.safeParse({ ...defaultSettings, restoreHistoryLimit: 1 });
     const tooMany = settingsSchema.safeParse({ ...defaultSettings, restoreHistoryLimit: 5000 });

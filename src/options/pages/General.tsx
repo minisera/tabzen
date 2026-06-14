@@ -6,6 +6,7 @@ import { Label } from '@/shared/components/ui/label';
 import { Slider } from '@/shared/components/ui/slider';
 import { Switch } from '@/shared/components/ui/switch';
 import { DurationInput } from '@/shared/components/duration-input';
+import { TabSwitcherPreview } from '@/options/components/tab-switcher-preview';
 import { sendMessage } from '@/shared/lib/runtime-client';
 import { useSettingsStore } from '@/shared/stores/settings-store';
 
@@ -208,6 +209,65 @@ export function General() {
             Ctrl+Q で開くオーバーレイに表示する MRU タブの最大数 (2〜10)。
           </p>
         </div>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <Label htmlFor="tabSwitcherLayout">オーバーレイを横レイアウトにする</Label>
+            <p className="text-xs text-muted-foreground mt-1">
+              オンにするとサムネイルを横並びのカードで表示します (macOS Cmd+Tab 風)。オフでは
+              縦リスト表示です。
+            </p>
+          </div>
+          <Switch
+            id="tabSwitcherLayout"
+            checked={draft.tabSwitcherLayout === 'horizontal'}
+            onChange={(v) => setDraft({ tabSwitcherLayout: v ? 'horizontal' : 'vertical' })}
+          />
+        </div>
+
+        {draft.tabSwitcherLayout === 'horizontal' && (
+          <div className="space-y-4 pl-4 border-l-2 border-border">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="tabSwitcherWrap">カードを折り返す</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  オフだと横一列に並べ、はみ出した分は横スクロール。オンだと指定した列数で
+                  折り返してグリッド表示します。
+                </p>
+              </div>
+              <Switch
+                id="tabSwitcherWrap"
+                checked={draft.tabSwitcherWrap}
+                onChange={(v) => setDraft({ tabSwitcherWrap: v })}
+              />
+            </div>
+
+            {draft.tabSwitcherWrap && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="tabSwitcherColumns">1 行の列数</Label>
+                  <span className="text-sm tabular-nums">{draft.tabSwitcherColumns} 列</span>
+                </div>
+                <Slider
+                  id="tabSwitcherColumns"
+                  min={2}
+                  max={8}
+                  value={draft.tabSwitcherColumns}
+                  onChange={(e) => setDraft({ tabSwitcherColumns: Number(e.target.value) })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  横レイアウトで折り返す際の 1 行あたりカード数 (2〜8)。
+                </p>
+              </div>
+            )}
+
+            <TabSwitcherPreview
+              layout={draft.tabSwitcherLayout}
+              wrap={draft.tabSwitcherWrap}
+              columns={draft.tabSwitcherColumns}
+            />
+          </div>
+        )}
 
         <hr className="border-border" />
 
