@@ -25,6 +25,17 @@ const INITIAL: State = {
 };
 const EVENT_TAB_SWITCH = 'tabzen:tab-switch';
 
+// ページが system キーボードフォーカスを持たない状況 (アドレスバーフォーカス中
+// など) では、修飾キーの keyup がページに届かず、Ctrl を離してもオーバーレイを
+// 閉じられない (commit されないのでタブ切替もできない)。さらにページ JS は
+// アドレスバーからフォーカスを奪えないため focus() しても解決しない。
+// そこで「ページがフォーカスを持てない間は一定時間操作が無ければ現在の選択で
+// 自動確定して閉じる」フォールバックを設ける (SW 側 tickDirectCycle の
+// time-based cycle と同じ発想)。Ctrl+Q を続けて押せばその都度タイマーは延長され、
+// 押すのを止めた時点で確定する。短すぎるとサイクル中に確定してしまい、長すぎると
+// 確定までもたつくため、押し直しの間隔として無理のない 1 秒に設定する。
+const NO_FOCUS_AUTO_DISMISS_MS = 1000;
+
 // 横レイアウト (折り返しあり) のカード寸法。コンテナ幅を「ちょうど N 列」に
 // 固定することで flex-wrap が指定列数で折り返す。w-[180px] / gap-3 / p-4 に対応。
 const H_CARD_W = 180;
@@ -132,31 +143,43 @@ export function TabSwitcherOverlay() {
   const modifierDownRef = useRef<Set<string>>(new Set());
   // 選択中の項目への参照。選択移動時にスクロール追従させるために使う。
   const selectedItemRef = useRef<HTMLButtonElement | null>(null);
+  // ページがフォーカスを持てない時の自動クローズ用タイマー。
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const applyState = useCallback((next: State) => {
     stateRef.current = next;
     setState(next);
   }, []);
 
+  const clearAutoDismiss = useCallback(() => {
+    if (dismissTimerRef.current !== null) {
+      clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = null;
+    }
+  }, []);
+
   const close = useCallback(() => {
+    clearAutoDismiss();
     applyState(INITIAL);
-  }, [applyState]);
+  }, [applyState, clearAutoDismiss]);
 
   const commitTabId = useCallback(
     (tabId: number) => {
+      clearAutoDismiss();
       applyState(INITIAL);
       sendMessageVoid({ kind: 'switchToTab', tabId });
     },
-    [applyState],
+    [applyState, clearAutoDismiss],
   );
 
   const commitCurrent = useCallback(() => {
+    clearAutoDismiss();
     const cur = stateRef.current;
     if (!cur.open) return;
     const target = cur.items[cur.selected];
     if (target) sendMessageVoid({ kind: 'switchToTab', tabId: target.tabId });
     applyState(INITIAL);
-  }, [applyState]);
+  }, [applyState, clearAutoDismiss]);
 
   const moveBy = useCallback(
     (direction: 'next' | 'prev') => {
@@ -172,6 +195,17 @@ export function TabSwitcherOverlay() {
   );
 
   useEffect(() => {
+    // ページがフォーカスを持てない時だけ自動クローズタイマーを張る。
+    // フォーカスがある通常時は keyup で閉じるためタイマーは不要 (張ると
+    // Ctrl を押しっぱなしで眺めている間に勝手に閉じてしまう)。
+    const scheduleAutoDismiss = () => {
+      clearAutoDismiss();
+      if (document.hasFocus()) return;
+      dismissTimerRef.current = setTimeout(() => {
+        commitCurrent();
+      }, NO_FOCUS_AUTO_DISMISS_MS);
+    };
+
     const onTick = (ev: Event) => {
       const detail = (
         ev as CustomEvent<{
@@ -214,12 +248,14 @@ export function TabSwitcherOverlay() {
         mouseMovedRef.current = false;
         mouseOriginRef.current = null;
         applyState({ open: true, items: incoming, selected, layout, wrap, columns });
+        scheduleAutoDismiss();
       } else {
         const total = prev.items.length;
         if (total === 0) return;
         const delta = direction === 'next' ? 1 : -1;
         const sel = (prev.selected + delta + total) % total;
         applyState({ ...prev, selected: sel });
+        scheduleAutoDismiss();
       }
     };
 
@@ -268,6 +304,9 @@ export function TabSwitcherOverlay() {
     const onAnyKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') {
         modifierDownRef.current.add(e.key);
+        // ページが実際にキーを受け取れている = フォーカスあり。keyup で閉じられる
+        // ので自動クローズタイマーは解除する。
+        clearAutoDismiss();
       }
     };
     const onAnyKeyUp = (e: KeyboardEvent) => {
@@ -293,6 +332,7 @@ export function TabSwitcherOverlay() {
     document.addEventListener('keyup', onKeyUp, true);
     window.addEventListener('blur', onBlur);
     return () => {
+      clearAutoDismiss();
       window.removeEventListener(EVENT_TAB_SWITCH, onTick);
       document.removeEventListener('keydown', onAnyKeyDown, true);
       document.removeEventListener('keyup', onAnyKeyUp, true);
@@ -300,7 +340,7 @@ export function TabSwitcherOverlay() {
       document.removeEventListener('keyup', onKeyUp, true);
       window.removeEventListener('blur', onBlur);
     };
-  }, [close, commitCurrent, moveBy, applyState]);
+  }, [close, commitCurrent, moveBy, applyState, clearAutoDismiss]);
 
   // 選択が移動したら、その項目が見えるようスクロール追従する。
   // 横一列 (折り返しなし) では選択が右へ進むと画面外に出るため必須。

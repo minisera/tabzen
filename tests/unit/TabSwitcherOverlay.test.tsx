@@ -110,3 +110,58 @@ describe('TabSwitcherOverlay horizontal wrap', () => {
     expect(screen.getByTestId('tab-switcher-list')).toHaveAttribute('data-wrap', 'false');
   });
 });
+
+describe('TabSwitcherOverlay close on modifier release', () => {
+  it('commits the selection and closes when the modifier key is released', () => {
+    render(<TabSwitcherOverlay />);
+    openOverlay({ items: [makeItem(1), makeItem(2)] });
+    expect(screen.getByTestId('tab-switcher-list')).toBeInTheDocument();
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Control' }));
+    });
+    expect(screen.queryByTestId('tab-switcher-list')).not.toBeInTheDocument();
+  });
+});
+
+describe('TabSwitcherOverlay auto-dismiss when the page cannot receive keys', () => {
+  // アドレスバー (omnibox) にフォーカスがある状態で Ctrl+Q を押すと、ページの
+  // document は system キーボードフォーカスを持たない (document.hasFocus()===false)。
+  // この場合 Ctrl の keyup がページに届かないため keyup では閉じられず、さらに
+  // ページ JS は omnibox からフォーカスを奪えないので focus() しても無意味。
+  // そのため「フォーカスが無い間は一定時間後に自動確定して閉じる」フォールバックが
+  // 必要 (SW 側 tickDirectCycle の time-based cycle と同じ考え方)。
+  it('auto-commits and closes after a delay when the document has no focus', () => {
+    vi.useFakeTimers();
+    const hasFocus = vi.spyOn(document, 'hasFocus').mockReturnValue(false);
+    try {
+      render(<TabSwitcherOverlay />);
+      openOverlay({ items: [makeItem(1), makeItem(2)] });
+      expect(screen.getByTestId('tab-switcher-list')).toBeInTheDocument();
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+      expect(screen.queryByTestId('tab-switcher-list')).not.toBeInTheDocument();
+    } finally {
+      hasFocus.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('does NOT auto-dismiss while the page has focus (closes via key release instead)', () => {
+    vi.useFakeTimers();
+    const hasFocus = vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+    try {
+      render(<TabSwitcherOverlay />);
+      openOverlay({ items: [makeItem(1), makeItem(2)] });
+      expect(screen.getByTestId('tab-switcher-list')).toBeInTheDocument();
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+      // フォーカスがある通常時はタイマーで勝手に閉じない (keyup で閉じる)。
+      expect(screen.getByTestId('tab-switcher-list')).toBeInTheDocument();
+    } finally {
+      hasFocus.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+});
