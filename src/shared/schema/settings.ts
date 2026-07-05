@@ -88,6 +88,9 @@ const settingsObjectSchema = z.object({
   tabSwitcherWrap: z.boolean().default(false),
   // 横レイアウトで折り返す場合の 1 行あたり列数。
   tabSwitcherColumns: z.number().int().min(2).max(8).default(4),
+  // リンクから開いた新タブ (openerTabId あり・バックグラウンド) を MRU の
+  // opener 直後に差し込み、Ctrl+Q 1 回で切り替えられるようにする。
+  insertLinkedTabsAfterActive: z.boolean().default(true),
   normalizeUrl: normalizeUrlOptionsSchema.default({
     stripTrailingSlash: true,
     stripUtm: true,

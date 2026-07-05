@@ -84,3 +84,40 @@ describe('mru-stack', () => {
     expect(await getMruForWindow(1)).toEqual([30, 10]);
   });
 });
+
+describe('insertAfterOpener', () => {
+  it('inserts new tab right after the opener', async () => {
+    const { bringToFront, insertAfterOpener, getMruForWindow } =
+      await import('@/background/mru-stack');
+    await bringToFront(1, 10); // opener = 10, stack = [10]
+    await insertAfterOpener(1, 20, 10);
+    expect(await getMruForWindow(1)).toEqual([10, 20]);
+  });
+
+  it('keeps the most recently opened linked tab nearest the opener', async () => {
+    const { bringToFront, insertAfterOpener, getMruForWindow } =
+      await import('@/background/mru-stack');
+    await bringToFront(1, 10); // [10]
+    await insertAfterOpener(1, 20, 10); // [10, 20]
+    await insertAfterOpener(1, 30, 10); // [10, 30, 20]
+    await insertAfterOpener(1, 40, 10); // [10, 40, 30, 20]
+    expect(await getMruForWindow(1)).toEqual([10, 40, 30, 20]);
+  });
+
+  it('falls back to index 1 when the opener is not in the stack', async () => {
+    const { bringToFront, insertAfterOpener, getMruForWindow } =
+      await import('@/background/mru-stack');
+    await bringToFront(1, 10); // [10]
+    await insertAfterOpener(1, 20, 999); // opener 不在 → index 1
+    expect(await getMruForWindow(1)).toEqual([10, 20]);
+  });
+
+  it('deduplicates when the tab already exists in the stack', async () => {
+    const { bringToFront, insertAfterOpener, getMruForWindow } =
+      await import('@/background/mru-stack');
+    await bringToFront(1, 10);
+    await bringToFront(1, 20); // [20, 10]
+    await insertAfterOpener(1, 20, 10); // 20 を除去後、opener 10 の直後へ → [10, 20]
+    expect(await getMruForWindow(1)).toEqual([10, 20]);
+  });
+});
