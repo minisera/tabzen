@@ -16,6 +16,17 @@ updates:
       prefix: 'chore'
       prefix-development: 'chore'
       include: 'scope'
+    groups:
+      # patch/minor をまとめて分割 PR を防ぐ。auto-merge が一括で通り、
+      # codeql-action の init/analyze 不整合のような部分更新も起きなくなる。
+      # major は group 対象外 = 個別 PR (手動レビュー) のまま。
+      minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - '*'
+        update-types:
+          - 'minor'
+          - 'patch'
 
   - package-ecosystem: 'github-actions'
     directory: '/'
@@ -30,3 +41,14 @@ updates:
     commit-message:
       prefix: 'ci'
       include: 'scope'
+    groups:
+      # patch/minor をまとめて分割 PR を防ぐ。auto-merge が一括で通り、
+      # codeql-action の init/analyze 不整合のような部分更新も起きなくなる。
+      # major は group 対象外 = 個別 PR (手動レビュー) のまま。
+      minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - '*'
+        update-types:
+          - 'minor'
+          - 'patch'
