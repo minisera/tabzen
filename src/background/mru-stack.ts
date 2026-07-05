@@ -26,6 +26,23 @@ export async function getMruForWindow(windowId: number): Promise<number[]> {
   return stacks[windowId] ?? [];
 }
 
+// opener (= リンクをクリックした現在アクティブタブ) の直後に新タブを挿入する。
+// opener が MRU に未登録なら index 1 (先頭の次 = 次の切替先) に挿入する。
+// 常に opener 直後へ入れるので、連続オープン時は「最新が先頭寄り」になる。
+export async function insertAfterOpener(
+  windowId: number,
+  tabId: number,
+  openerTabId: number,
+): Promise<void> {
+  const stacks = await getMruStacks();
+  const cur = (stacks[windowId] ?? []).filter((id) => id !== tabId);
+  const openerIdx = cur.indexOf(openerTabId);
+  const insertAt = openerIdx >= 0 ? openerIdx + 1 : 1;
+  cur.splice(insertAt, 0, tabId);
+  stacks[windowId] = cur;
+  await setMruStacks(stacks);
+}
+
 export async function cleanupStacksForKnownTabs(knownTabIds: Set<number>): Promise<void> {
   const stacks = await getMruStacks();
   let changed = false;
