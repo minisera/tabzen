@@ -20,6 +20,9 @@ tabzen-v*/
 # Chrome Web Store 公開作業用の個人メモ (公開しない)
 WEBSTORE.md
 
+# superpowers の設計書・実装計画など作業用メモ (リポジトリには含めない)
+docs/
+
 # Claude Code のローカル設定 (個人の許可設定 / セッション情報など) は追跡しない。
 # ただし .claude/skills/ はチーム共有のスキルとしてコミットする。
 # (CLAUDE.md もリポジトリのドキュメントとして従来どおりコミット)
