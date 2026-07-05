@@ -1,0 +1,35 @@
+name: Dependabot auto-merge
+
+# Dependabot の patch / minor 更新を、必須チェック (CI ビルド + CodeQL) 通過を条件に
+# 自動マージする。major は対象外 = 従来どおり手動レビュー。
+# --auto なので実マージは GitHub 側で必須チェック通過後に行われ、CI を迂回しない。
+on: pull_request
+
+# Dependabot 起因の pull_request では GITHUB_TOKEN が既定 read-only。
+# auto-merge 有効化に必要な最小権限のみ明示的に付与する。
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    # Dependabot が作成した PR だけを対象にする
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: メタデータ取得 (update-type 判定)
+        id: meta
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+
+      # patch / minor のみ auto-merge を有効化。major は条件に含めないので素通り (手動)。
+      # グループ PR の update-type はグループ内の最大 bump。groups は minor/patch 限定なので
+      # 最大でも minor 判定となり、意図せず major を自動マージすることはない。
+      - name: patch / minor を auto-merge
+        if: >-
+          steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+          steps.meta.outputs.update-type == 'version-update:semver-minor'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
