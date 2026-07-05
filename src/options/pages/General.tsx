@@ -212,6 +212,24 @@ export function General() {
 
         <div className="flex items-center justify-between">
           <div>
+            <Label htmlFor="insertLinkedTabsAfterActive">
+              リンクで開いた新タブをすぐ切り替えられるようにする
+            </Label>
+            <p className="text-xs text-muted-foreground mt-1">
+              ページ内リンクを新しいタブ (バックグラウンド) で開いたとき、Ctrl+Q を 1 回押すと
+              その新タブへ移動できるようにします。オフだと従来どおり、新タブは一度アクティブに
+              するまで切替候補に入りません。
+            </p>
+          </div>
+          <Switch
+            id="insertLinkedTabsAfterActive"
+            checked={draft.insertLinkedTabsAfterActive}
+            onChange={(v) => setDraft({ insertLinkedTabsAfterActive: v })}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div>
             <Label htmlFor="tabSwitcherLayout">オーバーレイを横レイアウトにする</Label>
             <p className="text-xs text-muted-foreground mt-1">
               オンにするとサムネイルを横並びのカードで表示します (macOS Cmd+Tab 風)。オフでは
