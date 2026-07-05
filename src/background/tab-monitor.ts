@@ -1,7 +1,13 @@
 import type { TabMeta } from '@/shared/schema/tab-meta';
+import { getSettings } from '@/shared/storage/settings';
 import { getTabMeta, setTabMeta } from '@/shared/storage/local-state';
 import { pruneThumbnails, removeThumbnail } from '@/shared/storage/thumbnails';
-import { bringToFront, cleanupStacksForKnownTabs, removeTab as removeFromMru } from './mru-stack';
+import {
+  bringToFront,
+  cleanupStacksForKnownTabs,
+  insertAfterOpener,
+  removeTab as removeFromMru,
+} from './mru-stack';
 import { captureActiveTabThumbnail } from './thumbnail-capture';
 
 function toMeta(tab: chrome.tabs.Tab, prev: TabMeta | undefined, now: number): TabMeta | null {
@@ -42,8 +48,20 @@ async function touchActive(tabId: number, windowId: number): Promise<void> {
   await bringToFront(windowId, tabId);
 }
 
+export async function handleCreated(tab: chrome.tabs.Tab): Promise<void> {
+  await upsertMeta(tab);
+  if (tab.id === undefined || tab.windowId === undefined) return;
+  // リンク由来のバックグラウンド新タブだけを MRU の opener 直後へ差し込む。
+  // active=true (フォアグラウンド) は onActivated が先頭へ持ち上げるため対象外。
+  // openerTabId が無い新タブ (Cmd+T 等) も対象外。
+  if (tab.active !== false || tab.openerTabId === undefined) return;
+  const settings = await getSettings();
+  if (!settings.insertLinkedTabsAfterActive) return;
+  await insertAfterOpener(tab.windowId, tab.id, tab.openerTabId);
+}
+
 export function initTabMonitor(): void {
-  chrome.tabs.onCreated.addListener((tab) => void upsertMeta(tab));
+  chrome.tabs.onCreated.addListener((tab) => void handleCreated(tab));
 
   chrome.tabs.onUpdated.addListener((_tabId, _info, tab) => {
     void upsertMeta(tab);
