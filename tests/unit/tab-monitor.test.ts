@@ -23,6 +23,14 @@ function createStorageArea() {
     async set(items: Record<string, unknown>) {
       Object.assign(store, items);
     },
+    // bootstrapCurrentTabs → pruneThumbnails が実キー列挙で孤児サムネを
+    // 回収するので、この 2 つが無いとサムネ絡みの経路で落ちる。
+    async remove(keys: string | string[]) {
+      for (const k of Array.isArray(keys) ? keys : [keys]) delete store[k];
+    },
+    async getKeys() {
+      return Object.keys(store);
+    },
   };
 }
 
