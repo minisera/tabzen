@@ -102,7 +102,7 @@ export function initMessaging(): void {
             }
             const ids = await getMruForWindow(win);
             const map = await getTabMeta();
-            const thumbs = await getThumbnails();
+            const thumbs = await getThumbnails(ids);
             const items = ids
               .map((id) => {
                 const meta = map[id];
@@ -115,10 +115,9 @@ export function initMessaging(): void {
           }
           case 'getAllTabs': {
             const map = await getTabMeta();
-            const thumbs = await getThumbnails();
-            const items = Object.values(map)
-              .sort((a, b) => b.lastActiveAt - a.lastActiveAt)
-              .map((meta) => ({ ...meta, thumbnail: thumbs[meta.tabId]?.dataUrl }));
+            // 全タブ分のサムネイルを積むと数 MB になるので載せない
+            // (利用側の検索パレットは favicon しか使わない)。
+            const items = Object.values(map).sort((a, b) => b.lastActiveAt - a.lastActiveAt);
             sendResponse({ ok: true, data: items });
             return;
           }

@@ -100,7 +100,7 @@ async function handleTabSwitchFallback(
   if (ids.length < 2) return;
 
   const map = await getTabMeta();
-  const thumbs = await getThumbnails();
+  const thumbs = await getThumbnails(ids);
   const items = ids
     .map((id) => {
       const meta = map[id];
@@ -136,10 +136,9 @@ async function handleTabSwitchFallback(
 
 async function handleOpenSearchPalette(tab: chrome.tabs.Tab | undefined): Promise<void> {
   const map = await getTabMeta();
-  const thumbs = await getThumbnails();
-  const items: TabSwitchItem[] = Object.values(map)
-    .sort((a, b) => b.lastActiveAt - a.lastActiveAt)
-    .map((meta) => ({ ...meta, thumbnail: thumbs[meta.tabId]?.dataUrl }));
+  // 検索パレットは favicon とタイトルしか描画しないのでサムネイルは積まない。
+  // 全タブ分を載せると開くたびに全件読みに逆戻りする。
+  const items: TabSwitchItem[] = Object.values(map).sort((a, b) => b.lastActiveAt - a.lastActiveAt);
 
   const win = await resolveWindowId(tab);
   if (typeof win !== 'number') return;
