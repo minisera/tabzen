@@ -1,18 +1,78 @@
 name: Release
 
+# package.json の version を上げた commit が main に入ったら、タグ作成 → GitHub Release →
+# Chrome Web Store への審査提出までを自動で行う。
+# タグを人が push する運用だと「マージ後の main に打つ」「version と一致させる」を毎回守る必要があり、
+# 間違えるとタグの打ち直しになるため、タグは workflow 自身が Release 作成時に作る。
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
+    # dependabot の依存更新でも package.json は変わるが、version が既存タグと同じなので check で skip される。
+    # CHANGELOG.md も対象にしているのは、CHANGELOG 不備で止まったリリースを修正 PR のマージだけで再開させるため。
+    paths:
+      - package.json
+      - CHANGELOG.md
+  workflow_dispatch:
 
 # top-level は最小権限。Release 作成に必要な書き込み権限は job 内で付与する。
 permissions: read-all
 
+# 連続 push で同じ version のリリースが並走し、Release / 審査提出が二重にならないよう直列化する
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
-  release:
+  check:
+    name: Check version
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      tag: ${{ steps.check.outputs.tag }}
+      should-release: ${{ steps.check.outputs.should-release }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check whether the tag already exists
+        id: check
+        run: |
+          VERSION=$(jq -r .version package.json)
+          # 後続でタグ名・ファイル名・URL に使うので、manifest の version として妥当な形だけ通す
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::package.json version ($VERSION) is not X.Y.Z"
+            exit 1
+          fi
+          TAG="v${VERSION}"
+          # matching-refs は前方一致 (v1.1 で v1.10.0 も返る) なので完全一致で数える。
+          # API エラー時は exit 非 0 で job ごと落とし、「タグ無し」と誤判定して既存 Release を上書きしないようにする
+          COUNT=$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/${TAG}" \
+            --jq "map(select(.ref == \"refs/tags/${TAG}\")) | length")
+          if [ "$COUNT" = "0" ]; then
+            echo "should-release=true" >> "$GITHUB_OUTPUT"
+            echo "$TAG does not exist yet — releasing."
+          else
+            echo "should-release=false" >> "$GITHUB_OUTPUT"
+            echo "$TAG already exists — nothing to release."
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  release:
+    name: Build & GitHub Release
+    needs: check
+    if: needs.check.outputs.should-release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
-      # GitHub Release 作成に必要 (softprops/action-gh-release)
+      # タグ + GitHub Release 作成に必要 (softprops/action-gh-release)
       contents: write
 
     steps:
@@ -46,44 +106,85 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Verify version matches tag
+      - name: Verify manifest version
+        # Web Store に上がるのは dist/manifest.json の version なので、ビルド成果物側で確認する
         run: |
-          PKG_VERSION=$(node -p "require('./package.json').version")
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-            echo "::error::package.json version ($PKG_VERSION) does not match tag ($TAG_VERSION)"
+          MANIFEST_VERSION=$(node -p "require('./dist/manifest.json').version")
+          if [ "$MANIFEST_VERSION" != "$VERSION" ]; then
+            echo "::error::dist/manifest.json version ($MANIFEST_VERSION) does not match package.json ($VERSION)"
             exit 1
           fi
-          echo "Version OK: $PKG_VERSION"
+          echo "Version OK: $MANIFEST_VERSION"
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
 
       - name: Package extension zip
         run: |
           cd dist
-          zip -r "../tabzen-${GITHUB_REF_NAME}.zip" .
+          zip -r "../tabzen-${TAG}.zip" .
           cd ..
-          ls -la "tabzen-${GITHUB_REF_NAME}.zip"
+          ls -la "tabzen-${TAG}.zip"
+        env:
+          TAG: ${{ needs.check.outputs.tag }}
 
       - name: Extract release notes from CHANGELOG
-        id: notes
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          # Extract the section between "## [<version>]" and the next "## [" header
-          awk -v ver="$VERSION" '
-            $0 ~ "^## \\[" ver "\\]" { capture=1; next }
-            capture && /^## \[/ { exit }
-            capture { print }
-          ' CHANGELOG.md > release-notes.md
-          if [ ! -s release-notes.md ]; then
-            echo "No CHANGELOG entry found for $VERSION — falling back to tag name." >&2
-            echo "Tab Zen $GITHUB_REF_NAME" > release-notes.md
-          fi
-          cat release-notes.md
+        # 自動で Web Store まで出るので、notes が取れない (CHANGELOG 不備) 場合はタグを作る前に止める
+        run: bash .github/scripts/extract-release-notes.sh "$VERSION" > release-notes.md
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
-          name: ${{ github.ref_name }}
+          # タグはまだ存在しないので、Release 作成と同時にこの commit へ作られる
+          tag_name: ${{ needs.check.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ needs.check.outputs.tag }}
           body_path: release-notes.md
-          files: tabzen-${{ github.ref_name }}.zip
+          files: tabzen-${{ needs.check.outputs.tag }}.zip
+          fail_on_unmatched_files: true
           draft: false
           prerelease: false
+
+      - name: Remind manual Web Store upload
+        if: vars.CWS_EXTENSION_ID == ''
+        run: echo "::notice::Chrome Web Store の自動提出が未設定です (RELEASING.md 参照)。Release の zip を手動でアップロードしてください"
+
+  publish-cws:
+    name: Publish to Chrome Web Store
+    needs: [check, release]
+    # 認証情報の登録前でも GitHub Release までは通るよう、未設定なら skip する
+    if: needs.release.result == 'success' && vars.CWS_EXTENSION_ID != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # 認証情報は environment secrets に置き、deployment branch を main に限定する。
+    # 依存パッケージのコードを実行する release job とはランナーを分け、認証情報に触れさせない
+    environment:
+      name: chrome-web-store
+      url: https://chromewebstore.google.com/detail/${{ vars.CWS_EXTENSION_ID }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download release zip
+        # GitHub Release に添付したものと同一の zip を提出する
+        run: gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "tabzen-${TAG}.zip"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.check.outputs.tag }}
+
+      - name: Upload & submit for review
+        run: bash .github/scripts/cws-publish.sh "tabzen-${TAG}.zip" "$VERSION"
+        env:
+          TAG: ${{ needs.check.outputs.tag }}
+          VERSION: ${{ needs.check.outputs.version }}
+          CWS_PUBLISHER_ID: ${{ vars.CWS_PUBLISHER_ID }}
+          CWS_EXTENSION_ID: ${{ vars.CWS_EXTENSION_ID }}
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}

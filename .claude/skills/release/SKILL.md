@@ -6,22 +6,23 @@ allowed-tools:
   - Bash(gh:*)
   - Bash(pnpm:*)
   - Bash(node:*)
+  - Bash(bash .github/scripts/extract-release-notes.sh:*)
   - Read
   - Edit
 ---
 
 # リリーススキル
 
-tabzen (Chrome 拡張) の新バージョンをリリースする手順。`version bump → CHANGELOG → release PR → squash マージ → タグ push` の流れで、**タグ push を起点に `.github/workflows/release.yml` が GitHub Release を自動生成**する。
+tabzen (Chrome 拡張) の新バージョンをリリースする手順。エージェントが行うのは `version bump → CHANGELOG → release PR → squash マージ` まで。**version を上げた commit が main に入ると `.github/workflows/release.yml` がタグ作成・GitHub Release・Chrome Web Store への審査提出まで自動で行う**。人向けの説明と CWS 初期設定は `RELEASING.md`。
 
 ## 重要な前提（先に読む）
 
 - **バージョンの単一の真実は `package.json` の `version`**。`src/manifest.ts` がビルド時にこれを読み、manifest の version になる。手で manifest を書き換えない。
-- **`v*` タグの push が `release.yml` を起動**し、CI (lint/typecheck/test/build) → version 整合チェック → `dist/` を zip (`tabzen-vX.Y.Z.zip`) → CHANGELOG から release notes 抽出 → **GitHub Release 自動作成** まで実行する。
-- **手動で `gh release create` しない**。workflow が作るので二重になる。
-- workflow は `package.json` の version が**タグと一致するか検証**する。不一致だと Release を作らず失敗する。
-- workflow は CHANGELOG の `## [X.Y.Z]` セクションを release notes に使う（`awk` で `## [X.Y.Z]` と次の `## [` の間を抽出）。**見出し形式を厳守**。
-- **Chrome Web Store への公開は手動**。エージェントからは実行不可。ユーザーに依頼する。
+- **main への push（`package.json` / `CHANGELOG.md` の変更）が `release.yml` を起動**し、`vX.Y.Z` タグが未作成なら CI (lint/typecheck/test/build) → `dist/manifest.json` の version 確認 → `dist/` を zip (`tabzen-vX.Y.Z.zip`) → CHANGELOG から release notes 抽出 → **タグ + GitHub Release 作成** → **Chrome Web Store にアップロードして審査提出**（通過後に自動公開）まで実行する。
+- つまり **version を上げた PR をマージした瞬間にリリースが始まる**。マージは「リリースしてよい」状態になってから行う。
+- **手でタグを打たない / `gh release create` しない**。workflow がタグごと作るので、先に打つと「タグ既存」と判定されて Release も Web Store 提出も行われない。
+- workflow は CHANGELOG の `## [X.Y.Z]` セクションを release notes に使い、**セクションが無い / 空 / 末尾リンク参照の更新漏れがあると失敗**する（`.github/scripts/extract-release-notes.sh`）。PR の CI でも同じ検証が走るので、CI green = CHANGELOG OK。
+- Chrome Web Store 提出 job は `CWS_EXTENSION_ID` 変数が未設定だと skip される。その場合だけ Web Store へのアップロードをユーザーに依頼する。
 - GitHub Actions はすべて commit SHA でピン留めされている。リリース作業中に触らない。
 
 ## 手順
@@ -49,7 +50,7 @@ git checkout -b release-vX.Y.Z
 
 ### 4. CHANGELOG.md を更新
 
-- `## [X.Y.Z] - YYYY-MM-DD` セクションを追加（日付はタグを打つ日 / JST）。`### Added` / `### Changed` / `### Fixed` / `### Internal` / `### Security` を使い、**「なぜ / 何を」を日本語で**書く（Keep a Changelog 形式）。
+- `## [X.Y.Z] - YYYY-MM-DD` セクションを追加（日付はマージする日 / JST）。`## [Unreleased]` に書き溜められた内容があれば、このセクションへ移して `[Unreleased]` は空にする。`### Added` / `### Changed` / `### Fixed` / `### Internal` / `### Security` を使い、**「なぜ / 何を」を日本語で**書く（Keep a Changelog 形式）。
 - **末尾のリンク参照を更新（忘れやすい）**:
   ```
   [Unreleased]: https://github.com/minisera/tabzen/compare/vX.Y.Z...HEAD
@@ -59,15 +60,15 @@ git checkout -b release-vX.Y.Z
 
 ### 5. ローカル検証
 
-**必須（タグ打ち直しを防ぐ事前チェック）** — version とリリースノートが揃っているか、コミット前に確認する。これを怠ると不整合がタグ push 後の workflow 失敗まで発覚せず、タグの打ち直しになる:
+**必須（push 前の事前チェック）** — version とリリースノートが揃っているか、コミット前に確認する。PR の CI でも同じ検証が走るが、ここで気付けば CI 待ちの往復が減る:
 
 ```bash
 # package.json の version がリリース対象と一致するか（bump 漏れ検出）
 node -p "require('./package.json').version"   # → X.Y.Z
 
-# release.yml と同じ方法で CHANGELOG から notes を抽出し、空でないか確認（見出し形式ミス検出）
-awk -v ver="X.Y.Z" '$0 ~ "^## \\[" ver "\\]" {c=1; next} c && /^## \[/ {exit} c {print}' CHANGELOG.md
-# 出力が空なら見出しが `## [X.Y.Z]` 形式になっていない。直すこと
+# release.yml / CI と同じスクリプトで CHANGELOG を検証し、notes を表示（見出し形式ミス・リンク参照の更新漏れ検出）
+bash .github/scripts/extract-release-notes.sh X.Y.Z
+# ::error:: が出たらメッセージに従って直すこと
 ```
 
 **推奨** — CI と同じ検証をローカルでも回す:
@@ -95,64 +96,48 @@ gh pr view <PR番号> --json mergeStateStatus -q .mergeStateStatus   # → CLEAN
 
 `Lint / Typecheck / Test / Build` と `Analyze (CodeQL)` が pass、`mergeStateStatus=CLEAN` を確認。
 
-### 8. squash マージ
+### 8. squash マージ（= リリース開始）
 
-過去のリリース履歴（`chore: release v1.0.3 (#28)` 等）に合わせて squash。
+過去のリリース履歴（`chore: release v1.0.3 (#28)` 等）に合わせて squash。**マージした時点で release.yml が走り、Web Store への提出まで進む**。
 
 ```bash
 gh pr merge <PR番号> --squash --delete-branch
 ```
 
-### 9. main 同期 & バージョン確認
-
-`gh pr merge` が自動で main に切り替え + fast-forward する。念のため確認:
+### 9. Release workflow を見届ける
 
 ```bash
-git checkout main && git pull
-node -p "require('./package.json').version"   # → X.Y.Z
-git rev-parse HEAD; git rev-parse origin/main # 一致すること
-```
-
-HEAD と origin/main が一致しない、または version が `X.Y.Z` でない場合は、**タグを打たずに中断**し原因を解消してから手順10へ進む（古い／誤った commit にタグが付くのを防ぐ）。
-
-### 10. タグ作成 & push（= Release 自動生成のトリガー）
-
-```bash
-git tag -a vX.Y.Z -m "vX.Y.Z"
-git push origin vX.Y.Z
-```
-
-### 11. Release workflow を見届ける
-
-```bash
-RUN_ID=$(gh run list --workflow=release.yml --limit 1 --json databaseId -q '.[0].databaseId')
+RUN_ID=$(gh run list --workflow=release.yml --branch main --limit 1 --json databaseId -q '.[0].databaseId')
 gh run watch "$RUN_ID" --exit-status
 gh release view vX.Y.Z --json name,assets,isDraft,url
 ```
 
-`tabzen-vX.Y.Z.zip` が添付され `isDraft=false` なら成功。
+- `tabzen-vX.Y.Z.zip` が添付され `isDraft=false` なら GitHub Release は成功。
+- `Publish to Chrome Web Store` job が成功していれば審査提出済み（log の `::notice::` に state が出る）。審査通過後は自動で公開される。
+- `Publish to Chrome Web Store` が **skipped** の場合は CWS 未設定。手順10へ。
+- 失敗した場合は `RELEASING.md` の「失敗したとき」に従う。再実行は **Re-run failed jobs**（`gh run rerun "$RUN_ID" --failed`）。Re-run all jobs はタグ既存で何もしないので使わない。
 
-### 12. Chrome Web Store へ手動アップロード（エージェントは実行不可）
+### 10. （CWS 未設定時のみ）Chrome Web Store へ手動アップロード（エージェントは実行不可）
 
-Release の `tabzen-vX.Y.Z.zip` をダウンロード（または `pnpm build` → `dist/` を zip）し、[デベロッパーダッシュボード](https://chrome.google.com/webstore/devconsole) で新バージョンとしてアップロード → 審査提出。**この手順はユーザーに依頼する**。
+Release の `tabzen-vX.Y.Z.zip` を [デベロッパーダッシュボード](https://chrome.google.com/webstore/devconsole) で新バージョンとしてアップロード → 審査提出。**この手順はユーザーに依頼する**。自動化したい場合は `RELEASING.md` の初期設定を案内する。
 
 ## よくある失敗
 
-| 失敗                                            | 原因 / 対処                                                                                    |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| workflow の `Verify version matches tag` で失敗 | `package.json` の version がタグと不一致。version を直して main にマージし直し、タグを打ち直す |
-| Release notes が空（タグ名だけ）                | CHANGELOG 見出しが `## [X.Y.Z]` 形式でない。形式を厳守                                         |
-| Release が 2 つできる                           | 手動で `gh release create` した。workflow に任せる                                             |
-| CHANGELOG のリンク切れ                          | 末尾リンク参照（`[Unreleased]` / `[X.Y.Z]`）の更新漏れ。手順4を実施                            |
-| 履歴が汚れる                                    | squash 以外でマージした。`--squash` を使う                                                     |
-| 古い内容がリリースされる                        | main 以外 / 古い commit にタグを打った。手順9で HEAD を確認してから打つ                        |
+| 失敗                                                    | 原因 / 対処                                                                                                     |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| CI の `Verify CHANGELOG entry for current version` 失敗 | CHANGELOG のセクション / 末尾リンク参照の不備。エラーメッセージに従って直す                                     |
+| マージしたのに Release ができない                       | 手でタグを先に打った（タグ既存で skip）。タグを消して workflow を `gh workflow run release.yml` で再実行        |
+| `Verify manifest version` で失敗                        | `dist/manifest.json` と `package.json` の version 不一致。`src/manifest.ts` が `pkg.version` を読んでいるか確認 |
+| `Publish to Chrome Web Store` が `invalid_grant` で失敗 | refresh token 失効。ユーザーに `RELEASING.md` の手順で取り直してもらい、Re-run failed jobs                      |
+| Release が 2 つできる / 提出が二重になる                | 手動で `gh release create` や Web Store アップロードをした。workflow に任せる                                   |
+| 履歴が汚れる                                            | squash 以外でマージした。`--squash` を使う                                                                      |
 
 ## チェックリスト
 
 - [ ] バージョン決定（SemVer）
 - [ ] `package.json` の version を bump
-- [ ] CHANGELOG にセクション追加 + 末尾リンク参照を更新
+- [ ] CHANGELOG にセクション追加（`[Unreleased]` の内容を移す）+ 末尾リンク参照を更新
 - [ ] release PR を作成、CI green を確認
-- [ ] squash マージ、main を同期しバージョン確認
-- [ ] `vX.Y.Z` タグを push、workflow 成功、Release を確認
-- [ ] Chrome Web Store への手動アップロードをユーザーに依頼
+- [ ] squash マージ（= リリース開始）
+- [ ] release.yml の成功を確認（GitHub Release + Web Store 提出）
+- [ ] Web Store 提出 job が skipped なら、手動アップロードをユーザーに依頼
