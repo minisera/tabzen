@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal
+
+- **リリースの自動化** — `package.json` の version を上げた PR を main にマージすると、`vX.Y.Z` タグ + GitHub Release の作成から Chrome Web Store API (v2) での審査提出 (通過後に自動公開) までを `release.yml` が行うようにした。従来はマージ後に手でタグを push し、zip をデベロッパーダッシュボードから手動アップロードしていた。Web Store の認証情報は依存パッケージのコードを実行するビルド job とは別ランナーの job (environment `chrome-web-store`) だけに渡す。あわせて CI で現在の version の CHANGELOG セクション / リンク参照を検証し、書き漏れたままマージされて自動リリースが走るのを防ぐ。手順は `RELEASING.md`。
+
 ## [1.1.0] - 2026-06-14
 
 ### Added

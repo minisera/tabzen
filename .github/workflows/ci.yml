@@ -42,6 +42,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Verify CHANGELOG entry for current version
+        # version を上げた PR はマージした瞬間に release.yml が Web Store 提出まで進めるので、
+        # CHANGELOG のセクション / リンク参照の書き漏れはここで止める
+        run: bash .github/scripts/extract-release-notes.sh "$(node -p "require('./package.json').version")" > /dev/null
+
       - name: Format check
         run: pnpm format:check
 

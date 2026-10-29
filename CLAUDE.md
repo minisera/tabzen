@@ -91,3 +91,5 @@ The CS mounts inside a Shadow DOM with `:root` → `:host` substitution applied 
 ## Release flow
 
 Version lives in `package.json` and is read by `src/manifest.ts` at build time. CHANGELOG.md uses Keep a Changelog format. CodeQL + Dependabot run via `.github/workflows/`. All GitHub Actions are pinned to commit SHAs (with version comment) — preserve this when editing workflows.
+
+Releasing = merging a PR that bumps `version` into main. `release.yml` then creates the `vX.Y.Z` tag + GitHub Release (zip attached, notes from CHANGELOG) and submits the zip to the Chrome Web Store via `.github/scripts/cws-publish.sh` (skipped until the `CWS_*` variables/secrets are configured — see `RELEASING.md`). Never push release tags or run `gh release create` by hand: an existing tag makes the workflow skip the release. CI runs `.github/scripts/extract-release-notes.sh` against the current version, so a version bump without a matching `## [X.Y.Z]` section and link references fails the PR. Step-by-step: `.claude/skills/release/SKILL.md`.
