@@ -85,7 +85,7 @@ jobs:
 
       - name: Setup pnpm
         # version は package.json の packageManager フィールドから読まれる
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -134,7 +134,7 @@ jobs:
           VERSION: ${{ needs.check.outputs.version }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           # タグはまだ存在しないので、Release 作成と同時にこの commit へ作られる
           tag_name: ${{ needs.check.outputs.tag }}
